@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { AppService, HotkeyDescription, HotkeyProvider, MenuItemOptions, NewTabParameters, PlatformService, RecoveryToken, TabRecoveryProvider, ToolbarButton, ToolbarButtonProvider } from 'tabby-core'
+import { AppService, BaseTabComponent, HotkeyDescription, HotkeyProvider, MenuItemOptions, NewTabParameters, NotificationsService, PlatformService, RecoveryToken, TabContextMenuItemProvider, TabRecoveryProvider, ToolbarButton, ToolbarButtonProvider } from 'tabby-core'
 import { SettingsTabComponent, SettingsTabProvider } from 'tabby-settings'
 import { SFTPContextMenuItemProvider, SFTPFile, SFTPPanelComponent } from 'tabby-ssh'
 import { FILES_TAB_TOKEN_TYPE, PROJECT_TAB_TOKEN_TYPE } from './api'
@@ -9,6 +9,7 @@ import { ProjectsSettingsComponent } from './components/settings.component'
 import { UI } from './icons'
 import { LocalEditService } from './services/localEdit.service'
 import { ProjectOpenerService } from './services/opener.service'
+import { ProjectsService } from './services/projects.service'
 import * as path from 'path'
 
 @Injectable()
@@ -103,6 +104,35 @@ export class ProjectsSFTPContextMenu extends SFTPContextMenuItemProvider {
         }
         items.push({ label: 'Copy remote path', click: () => this.platform.setClipboard({ text: item.fullPath }) })
         return items
+    }
+}
+
+/** Right-click any terminal tab -> "Add to Projects" (uses its profile and current directory). */
+@Injectable()
+export class AddToProjectsContextMenu extends TabContextMenuItemProvider {
+    weight = 20
+
+    constructor (
+        private projects: ProjectsService,
+        private notifications: NotificationsService,
+        private settingsOpener: ProjectsSettingsOpener,
+    ) {
+        super()
+    }
+
+    async getItems (tab: BaseTabComponent): Promise<MenuItemOptions[]> {
+        const profile = (tab as any).profile
+        if (!profile?.type || tab instanceof ProjectTabComponent || tab instanceof FilesTabComponent) return []
+        return [{
+            label: 'Add to Projects',
+            click: async () => {
+                let cwd: string | null = null
+                try { cwd = await (tab as any).session?.getWorkingDirectory?.() ?? null } catch { /* not supported */ }
+                const p = this.projects.newProjectFromProfile(profile, cwd)
+                this.notifications.info(`Added "${p.name}" to Projects`)
+                this.settingsOpener.open(p.id)
+            },
+        }]
     }
 }
 

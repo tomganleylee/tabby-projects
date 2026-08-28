@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { ConfigProvider, HotkeyProvider, HotkeysService, TabRecoveryProvider, ToolbarButtonProvider } from 'tabby-core'
+import { ConfigProvider, HotkeyProvider, HotkeysService, TabContextMenuItemProvider, TabRecoveryProvider, ToolbarButtonProvider } from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
 import { SFTPContextMenuItemProvider } from 'tabby-ssh'
 
@@ -13,7 +13,7 @@ import { ProjectTabComponent, ProjectsSettingsOpener } from './components/projec
 import { RailComponent } from './components/rail.component'
 import { ProjectsSettingsComponent } from './components/settings.component'
 import {
-    FilesTabRecoveryProvider, ProjectTabRecoveryProvider, ProjectsHotkeyProvider, ProjectsSFTPContextMenu,
+    AddToProjectsContextMenu, FilesTabRecoveryProvider, ProjectTabRecoveryProvider, ProjectsHotkeyProvider, ProjectsSFTPContextMenu,
     ProjectsSettingsOpenerImpl, ProjectsSettingsTabProvider, ProjectsToolbarButtonProvider,
 } from './providers'
 import { ProjectOpenerService } from './services/opener.service'
@@ -30,6 +30,7 @@ import { RailService } from './services/rail.service'
         { provide: ToolbarButtonProvider, useClass: ProjectsToolbarButtonProvider, multi: true },
         { provide: SFTPContextMenuItemProvider, useClass: ProjectsSFTPContextMenu, multi: true },
         { provide: ProjectsSettingsOpener, useClass: ProjectsSettingsOpenerImpl },
+        { provide: TabContextMenuItemProvider, useClass: AddToProjectsContextMenu, multi: true },
     ],
     declarations: [
         ProjIconComponent,

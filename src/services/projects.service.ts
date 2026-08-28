@@ -56,12 +56,36 @@ export class ProjectsService {
             profile: null,
             cwd: null,
             promptExpect: null,
+            pinned: true,
             tabs: this.defaultTabs(),
             ...partial,
         }
         this.cfg.items.push(p)
         this.save()
         return p
+    }
+
+    /** Create a project from an existing Tabby profile (name, icon and colour carried over). */
+    newProjectFromProfile (profile: PartialProfile<Profile>, cwd: string | null = null): Project {
+        const tabs = this.defaultTabs()
+        if (profile.type !== 'ssh') tabs.splice(2, 1) // no Files tab for local shells
+        return this.newProject({
+            name: profile.name,
+            profile: profile.id ?? null,
+            icon: profile.icon || builtinIcon('folder'),
+            color: profile.color || null,
+            cwd,
+            tabs,
+        })
+    }
+
+    isPinned (p: Project): boolean {
+        return p.pinned !== false
+    }
+
+    setPinned (p: Project, pinned: boolean): void {
+        p.pinned = pinned
+        this.save()
     }
 
     newGroup (name = 'New group'): ProjectGroup {

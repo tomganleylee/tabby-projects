@@ -8,6 +8,8 @@ Work on all your projects from one Tabby window.
 - **Remote file browser** for SSH projects — Tabby's own SFTP panel, docked as a tab.
 - **Edit-in-place** — double-click a remote file: it's downloaded to a temp folder, opened in your editor, and uploaded again every time you save. Per-extension *Open with* overrides (e.g. `.md` → your Markdown editor).
 - **Icons** — a built-in stroke set, any Font Awesome 5 class, pasted SVG, or an uploaded image.
+- **Pinned / More** — pinned projects are always listed; unpin the rest and they fold into a *More (n)* row per group. Anything open is always shown.
+- **Add from anywhere** — the rail's **+** turns any Tabby profile into a project; right-click any terminal tab → *Add to Projects* (keeps its profile and current directory).
 - Sessions are recovered on restart like any other Tabby tab.
 
 > Works with Tabby ≥ 1.0.200 (Angular 15 builds). Tested on 1.0.235 / Windows.
@@ -28,7 +30,7 @@ Restart Tabby. A **Projects** page appears in Settings, and the rail appears on 
 
 ## Setting up a project
 
-Settings → **Projects** → **+**
+Rail **+** (pick a profile), right-click a terminal tab → *Add to Projects*, or Settings → **Projects** → **+**
 
 | Field | Meaning |
 |---|---|

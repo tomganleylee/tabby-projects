@@ -33,6 +33,8 @@ export interface Project {
     cwd?: string | null
     /** Regex matched against terminal output to know the shell is ready before sending `command`. */
     promptExpect?: string | null
+    /** Pinned projects are always listed; unpinned ones fold into a "More" row in their group. Default true. */
+    pinned?: boolean
     tabs: ProjectTabSpec[]
 }
 

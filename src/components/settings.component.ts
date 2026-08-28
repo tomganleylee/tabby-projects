@@ -102,7 +102,10 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                         </div>
                         <div class="col-6 form-line"><label>Working directory</label><input class="form-control form-control-sm mono" placeholder="/opt/my-project" [(ngModel)]="sel.project.cwd" (ngModelChange)="save()"></div>
                     </div>
-                    <div class="form-line"><label>Prompt pattern override <small>(blank = global)</small></label><input class="form-control form-control-sm mono" [(ngModel)]="sel.project.promptExpect" (ngModelChange)="save()"></div>
+                    <div class="row">
+                        <div class="col-8 form-line"><label>Prompt pattern override <small>(blank = global)</small></label><input class="form-control form-control-sm mono" [(ngModel)]="sel.project.promptExpect" (ngModelChange)="save()"></div>
+                        <div class="col-4 form-line"><label>Pinned <small>(unpinned fold into "More")</small></label><input type="checkbox" class="form-check-input" [ngModel]="projects.isPinned(sel.project)" (ngModelChange)="sel.project.pinned = $event; save()"></div>
+                    </div>
 
                     <h4>Tabs</h4>
                     <table class="table table-sm ps-tabs">

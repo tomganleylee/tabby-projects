@@ -11,6 +11,7 @@ import { ProjectTabComponent } from './projectTab.component'
 interface RailGroup {
     group: ProjectGroup | null
     projects: Project[]
+    more: Project[]
 }
 
 /** The left-hand project rail. Injected next to Tabby's main content by RailService. */
@@ -20,7 +21,7 @@ interface RailGroup {
         <div class="pr-head">
             <button class="pr-iconbtn" (click)="toggleCollapse()" [innerHTML]="ui.sidebar" [title]="collapsed ? 'Expand' : 'Collapse'"></button>
             <span class="pr-title" *ngIf="!collapsed">Projects</span>
-            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus" title="Add project"></button>
+            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus" title="Add project from a profile"></button>
         </div>
         <div class="pr-search" *ngIf="!collapsed" (click)="opener.quickOpen()">
             <span [innerHTML]="ui.search"></span><span class="pr-search-text">Jump to project…</span>
@@ -36,26 +37,20 @@ interface RailGroup {
                     </ng-container>
                 </div>
                 <ng-container *ngIf="!isCollapsed(g.group)">
-                    <div class="pr-item" *ngFor="let p of g.projects"
-                        [class.active]="isActive(p)"
-                        [class.open]="!!tabFor(p)"
-                        [class.compact]="collapsed"
-                        [class.activity]="tabFor(p)?.hasActivity"
-                        (click)="open(p)"
-                        (auxclick)="onAux($event, p)"
-                        (contextmenu)="projectMenu($event, p)"
-                        [title]="p.name">
-                        <span class="pr-bar" *ngIf="isActive(p)" [style.background]="colorFor(p)"></span>
-                        <span class="pr-ico" [style.color]="isActive(p) || tabFor(p) ? colorFor(p) : null">
-                            <proj-icon [icon]="projects.iconFor(p)"></proj-icon>
-                            <span class="pr-dot" *ngIf="collapsed && tabFor(p)"></span>
-                        </span>
-                        <ng-container *ngIf="!collapsed">
-                            <span class="pr-name">{{ p.name }}</span>
-                            <span class="pr-count" *ngIf="tabFor(p) as t">{{ t.children.length }}</span>
-                            <span class="pr-dot" *ngIf="tabFor(p)"></span>
+                    <ng-container *ngFor="let p of g.projects">
+                        <ng-container *ngTemplateOutlet="projectRow; context: { $implicit: p, sub: false }"></ng-container>
+                    </ng-container>
+                    <ng-container *ngIf="g.more.length">
+                        <div class="pr-more" [class.compact]="collapsed" (click)="toggleMore(g)" title="More projects">
+                            <span class="pr-ico" [innerHTML]="isMoreOpen(g) ? ui.chevDown : ui.chevRight"></span>
+                            <span class="pr-name" *ngIf="!collapsed">More <span class="pr-count">{{ g.more.length }}</span></span>
+                        </div>
+                        <ng-container *ngIf="isMoreOpen(g)">
+                            <ng-container *ngFor="let p of g.more">
+                                <ng-container *ngTemplateOutlet="projectRow; context: { $implicit: p, sub: true }"></ng-container>
+                            </ng-container>
                         </ng-container>
-                    </div>
+                    </ng-container>
                 </ng-container>
             </div>
 
@@ -79,6 +74,29 @@ interface RailGroup {
                 </div>
             </div>
         </div>
+
+        <ng-template #projectRow let-p let-sub="sub">
+            <div class="pr-item" [class.sub]="sub"
+                [class.active]="isActive(p)"
+                [class.open]="!!tabFor(p)"
+                [class.compact]="collapsed"
+                [class.activity]="tabFor(p)?.hasActivity"
+                (click)="open(p)"
+                (auxclick)="onAux($event, p)"
+                (contextmenu)="projectMenu($event, p)"
+                [title]="p.name">
+                <span class="pr-bar" *ngIf="isActive(p)" [style.background]="colorFor(p)"></span>
+                <span class="pr-ico" [style.color]="isActive(p) || tabFor(p) ? colorFor(p) : null">
+                    <proj-icon [icon]="projects.iconFor(p)"></proj-icon>
+                    <span class="pr-dot" *ngIf="collapsed && tabFor(p)"></span>
+                </span>
+                <ng-container *ngIf="!collapsed">
+                    <span class="pr-name">{{ p.name }}</span>
+                    <span class="pr-count" *ngIf="tabFor(p) as t">{{ t.children.length }}</span>
+                    <span class="pr-dot" *ngIf="tabFor(p)"></span>
+                </ng-container>
+            </div>
+        </ng-template>
 
         <div class="pr-foot">
             <button class="pr-footbtn" (click)="newTab()" [title]="'New terminal tab'">
@@ -109,6 +127,11 @@ interface RailGroup {
         .pr-chev ::ng-deep svg { width: 12px; height: 12px; }
         .pr-item { position: relative; height: calc(38px * var(--spaciness, 1)); display: flex; align-items: center; gap: 10px; padding: 0 10px 0 16px; cursor: pointer; color: var(--theme-fg-more); }
         .pr-item.compact { justify-content: center; padding: 0; gap: 0; }
+        .pr-item.sub:not(.compact) { padding-left: 28px; height: calc(32px * var(--spaciness, 1)); font-size: 13px; }
+        .pr-more { height: 28px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 16px; cursor: pointer; color: var(--theme-fg-more-2); font-size: 12px; }
+        .pr-more.compact { justify-content: center; padding: 0; }
+        .pr-more:hover { color: var(--theme-fg); background: rgba(0,0,0,.15); }
+        .pr-more .pr-ico { font-size: 12px; } .pr-more .pr-ico ::ng-deep svg { width: 12px; height: 12px; }
         .pr-item:hover { background: rgba(0,0,0,.15); color: var(--theme-fg); }
         .pr-item.active { background: var(--body-bg); color: var(--theme-fg); }
         .pr-item.activity:not(.active) .pr-name { font-style: italic; }
@@ -184,10 +207,14 @@ export class RailComponent implements OnInit, OnDestroy {
             byGroup.get(key)!.push(p)
         }
         this.groups = []
+        const split = (list: Project[]): { projects: Project[], more: Project[] } => ({
+            projects: list.filter(p => this.projects.isPinned(p) || this.tabFor(p)),
+            more: list.filter(p => !this.projects.isPinned(p) && !this.tabFor(p)),
+        })
         for (const g of this.cfg.groups) {
-            if (byGroup.has(g.id)) this.groups.push({ group: g, projects: byGroup.get(g.id)! })
+            if (byGroup.has(g.id)) this.groups.push({ group: g, ...split(byGroup.get(g.id)!) })
         }
-        if (byGroup.has(null)) this.groups.push({ group: null, projects: byGroup.get(null)! })
+        if (byGroup.has(null)) this.groups.push({ group: null, ...split(byGroup.get(null)!) })
         this.otherTabs = this.app.tabs.filter(t => !(t instanceof ProjectTabComponent))
         this.cdr.detectChanges()
     }
@@ -223,6 +250,7 @@ export class RailComponent implements OnInit, OnDestroy {
             { label: t ? 'Switch to' : 'Open', click: () => this.open(p) },
             { label: 'Close', enabled: !!t, click: () => t && this.app.closeTab(t, true) },
             { type: 'separator' },
+            { label: this.projects.isPinned(p) ? 'Unpin (move to "More")' : 'Pin', click: () => { this.projects.setPinned(p, !this.projects.isPinned(p)); this.rebuild() } },
             { label: 'Edit project…', click: () => this.openSettings(p.id) },
             { label: 'Remove from list', click: () => this.removeProject(p) },
         ], event)
@@ -260,9 +288,31 @@ export class RailComponent implements OnInit, OnDestroy {
         this.projects.save()
     }
 
-    addProject (): void {
-        const p = this.projects.newProject()
-        this.openSettings(p.id)
+    private moreOpen = new Set<string>()
+
+    isMoreOpen (g: RailGroup): boolean {
+        return this.moreOpen.has(g.group?.id ?? '')
+    }
+
+    toggleMore (g: RailGroup): void {
+        const key = g.group?.id ?? ''
+        if (this.moreOpen.has(key)) this.moreOpen.delete(key); else this.moreOpen.add(key)
+        this.cdr.detectChanges()
+    }
+
+    async addProject (): Promise<void> {
+        const list = await this.projects.allProfiles()
+        const picked = await this.selector.show<any>('New project from profile', [
+            { name: 'Blank project', description: 'Set everything up by hand', icon: this.ui.plus, result: 'blank', weight: -1 },
+            ...list.map(p => ({
+                ...this.profiles.selectorOptionForProfile(p),
+                result: p,
+            })),
+        ])
+        if (!picked) return
+        const project = picked === 'blank' ? this.projects.newProject() : this.projects.newProjectFromProfile(picked)
+        this.rebuild()
+        this.openSettings(project.id)
     }
 
     async newTab (): Promise<void> {
