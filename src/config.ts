@@ -7,8 +7,9 @@ export class ProjectsConfigProvider extends ConfigProvider {
             hideTabBar: true,
             railWidth: 240,
             collapsed: false,
-            // Matches the end of most shell prompts: `$ `, `# `, `> `, `% `.
-            promptExpect: '[$#%>] $',
+            // End of most shell prompts (`$ `, `# `, `> `, `% `). `\S*\s*$` tolerates escape
+            // sequences that arrive in the same chunk as the prompt (bash bracketed-paste etc.).
+            promptExpect: '[$#%>] \\S*\\s*$',
             openWith: {},
             groups: [],
             items: [],

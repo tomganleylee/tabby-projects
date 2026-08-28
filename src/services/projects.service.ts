@@ -137,11 +137,13 @@ export class ProjectsService {
     }
 
     private loginScript (project: Project, command: string): { expect: string, isRegex: boolean, send: string, optional: boolean } {
+        // NOT optional: Tabby discards an optional script on the first output chunk that doesn't
+        // match (i.e. the MOTD), so it would never see the prompt. Tabby appends the newline itself.
         return {
             expect: project.promptExpect || this.cfg.promptExpect,
             isRegex: true,
-            send: command + '\\n',
-            optional: true,
+            send: command,
+            optional: false,
         }
     }
 

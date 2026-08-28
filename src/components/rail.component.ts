@@ -32,10 +32,10 @@ interface RailGroup {
                     <span class="pr-sw" [style.background]="g.group?.color || 'var(--theme-fg-more-2)'"></span>
                     <ng-container *ngIf="!collapsed">
                         <span class="pr-group-name">{{ g.group?.name || 'Ungrouped' }}</span>
-                        <span class="pr-chev" [innerHTML]="g.group?.collapsed ? ui.chevRight : ui.chevDown"></span>
+                        <span class="pr-chev" [innerHTML]="isCollapsed(g.group) ? ui.chevRight : ui.chevDown"></span>
                     </ng-container>
                 </div>
-                <ng-container *ngIf="!g.group?.collapsed">
+                <ng-container *ngIf="!isCollapsed(g.group)">
                     <div class="pr-item" *ngFor="let p of g.projects"
                         [class.active]="isActive(p)"
                         [class.open]="!!tabFor(p)"
@@ -105,7 +105,8 @@ interface RailGroup {
         .pr-sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
         .pr-group-h.compact .pr-sw { width: 18px; height: 3px; }
         .pr-group-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .pr-chev ::ng-deep svg { width: 11px; height: 11px; }
+        .pr-chev { display: inline-flex; opacity: .7; }
+        .pr-chev ::ng-deep svg { width: 12px; height: 12px; }
         .pr-item { position: relative; height: calc(38px * var(--spaciness, 1)); display: flex; align-items: center; gap: 10px; padding: 0 10px 0 16px; cursor: pointer; color: var(--theme-fg-more); }
         .pr-item.compact { justify-content: center; padding: 0; gap: 0; }
         .pr-item:hover { background: rgba(0,0,0,.15); color: var(--theme-fg); }
@@ -234,10 +235,24 @@ export class RailComponent implements OnInit, OnDestroy {
         this.rebuild()
     }
 
+    /** Collapse state is mirrored locally so the click reflects instantly, then persisted. */
+    private collapsedLocal = new Map<string, boolean>()
+
+    isCollapsed (g: ProjectGroup | null): boolean {
+        if (!g) return false
+        return this.collapsedLocal.get(g.id) ?? !!g.collapsed
+    }
+
     toggleGroup (g: ProjectGroup | null): void {
         if (!g) return
-        g.collapsed = !g.collapsed
-        this.projects.save()
+        const next = !this.isCollapsed(g)
+        this.collapsedLocal.set(g.id, next)
+        this.cdr.detectChanges()
+        const stored = this.cfg.groups.find(x => x.id === g.id)
+        if (stored) {
+            stored.collapsed = next
+            this.projects.save()
+        }
     }
 
     toggleCollapse (): void {
