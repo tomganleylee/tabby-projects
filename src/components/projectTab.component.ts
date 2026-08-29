@@ -2,6 +2,9 @@ import { AfterViewInit, Component, EmbeddedViewRef, Injector, Input, ViewChild, 
 import { Subject } from 'rxjs'
 import { AppService, BaseTabComponent, BaseTabProcess, GetRecoveryTokenOptions, MenuItemOptions, PlatformService, RecoveryToken, TabRecoveryService, TabsService } from 'tabby-core'
 import { Project, ProjectTabSpec, PROJECT_TAB_TOKEN_TYPE } from '../api'
+
+/** Recovery token for a child opened from a project tab spec — recovered by re-deriving, not replaying. */
+const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
 import { UI } from '../icons'
 import { ProjectsService } from '../services/projects.service'
 import { FilesTabComponent } from './filesTab.component'
@@ -83,6 +86,8 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
     ui = UI
 
     private viewRefs = new Map<BaseTabComponent, EmbeddedViewRef<any>>()
+    /** Which project tab spec a child was opened from (ad-hoc tabs are absent). */
+    private specOf = new Map<BaseTabComponent, string>()
     private app: AppService
     private projects: ProjectsService
     private tabs: TabsService
@@ -117,6 +122,13 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         if (this.recoveredChildren) {
             for (const token of this.recoveredChildren) {
                 try {
+                    if (token.type === SPEC_TOKEN_TYPE) {
+                        // Re-derive from the *current* project config rather than replaying the
+                        // profile snapshot Tabby stored — so config edits and fixes apply on restart.
+                        const spec = this.project.tabs.find(t => t.id === token.specId)
+                        if (spec) await this.openSpec(spec, false)
+                        continue
+                    }
                     const params = await this.tabRecovery.recoverTab(token)
                     if (!params) continue
                     const tab = this.tabs.create(params)
@@ -149,6 +161,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         if (spec.kind === 'files') return this.openFiles(activate)
         const tab = await this.projects.createShellTab(this.project, spec)
         if (!tab) return null
+        if (spec.id !== 'adhoc') this.specOf.set(tab, spec.id)
         if (spec.icon) tab.icon = spec.icon
         this.addChild(tab, activate)
         return tab
@@ -196,6 +209,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         const idx = this.children.indexOf(tab)
         if (idx === -1) return
         this.children.splice(idx, 1)
+        this.specOf.delete(tab)
         tab.removeFromContainer()
         this.viewRefs.delete(tab)
         if (this.active === tab) {
@@ -298,6 +312,11 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         if (!this.project) return null
         const children: RecoveryToken[] = []
         for (const c of this.children) {
+            const specId = this.specOf.get(c)
+            if (specId) {
+                children.push({ type: SPEC_TOKEN_TYPE, specId })
+                continue
+            }
             const t = await this.tabRecovery.getFullRecoveryToken(c, options)
             if (t) children.push(t)
         }
