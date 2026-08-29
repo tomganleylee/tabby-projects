@@ -159,16 +159,17 @@ export class ProjectsService {
             this.notifications.error(`Project "${project.name}" has no host profile set`)
             return null
         }
+        const command = resolveCommand(spec, ctx)
+        const dynamicTitle = spec.dynamicTitle ?? /claude/i.test(command ?? '')
         const p: any = {
             ...base,
             options: { ...(base.options ?? {}) },
             name: `${project.name} · ${spec.title}`,
             icon: spec.icon ?? project.icon ?? base.icon,
             color: this.colorFor(project) ?? base.color,
-            disableDynamicTitle: true,
+            disableDynamicTitle: !dynamicTitle,
         }
 
-        const command = resolveCommand(spec, ctx)
         this.logger.info(`launch "${project.name} · ${spec.title}" recovering=${ctx.recovering} session=${ctx.sessionId} command=${JSON.stringify(command)}`)
         const parts: string[] = []
         if (project.cwd) parts.push(`cd ${quote(project.cwd, base.type === 'local')}`)

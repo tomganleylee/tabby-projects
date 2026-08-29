@@ -20,6 +20,11 @@ export interface ProjectTabSpec {
     recoverCommand?: string | null
     /** Open this tab automatically when the project is opened. */
     autoOpen?: boolean
+    /**
+     * Let the program running in the tab set the tab's name (terminal title). Claude Code
+     * publishes its conversation summary this way. Default: on when the command runs `claude`.
+     */
+    dynamicTitle?: boolean
 }
 
 export interface ProjectGroup {
