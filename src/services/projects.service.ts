@@ -3,6 +3,36 @@ import { BaseTabComponent, ConfigService, NotificationsService, PartialProfile, 
 import { Project, ProjectGroup, ProjectTabSpec, ProjectsConfig, uid } from '../api'
 import { builtinIcon } from '../icons'
 
+/** Default Claude Code commands: a fixed session id at launch, resumed by id after a restart. */
+export const CLAUDE_COMMAND = 'claude --session-id {{session}}'
+export const CLAUDE_RESUME = 'claude --resume {{session}}'
+
+export interface LaunchContext {
+    /** Per-tab-instance UUID substituted for `{{session}}`. */
+    sessionId: string
+    /** True when re-creating the tab after a Tabby restart. */
+    recovering: boolean
+}
+
+export function newSessionId (): string {
+    const c: any = globalThis.crypto
+    if (c?.randomUUID) return c.randomUUID()
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => {
+        const r = Math.random() * 16 | 0
+        return (ch === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+    })
+}
+
+/** Pick the launch or recovery command for a spec and expand placeholders. */
+export function resolveCommand (spec: ProjectTabSpec, ctx: LaunchContext): string | null {
+    let cmd = spec.command ?? null
+    if (ctx.recovering) {
+        if (spec.recoverCommand) cmd = spec.recoverCommand
+        else if (cmd?.includes('--session-id {{session}}')) cmd = cmd.replace('--session-id {{session}}', '--resume {{session}}')
+    }
+    return cmd ? cmd.replace(/\{\{\s*session\s*\}\}/g, ctx.sessionId) : null
+}
+
 /** Config access + turning a project's tab spec into a real Tabby tab. Knows nothing about the UI. */
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
@@ -40,7 +70,7 @@ export class ProjectsService {
 
     defaultTabs (): ProjectTabSpec[] {
         return [
-            { id: uid(), title: 'Claude', kind: 'shell', command: 'claude', icon: builtinIcon('robot'), autoOpen: true },
+            { id: uid(), title: 'Claude', kind: 'shell', command: CLAUDE_COMMAND, recoverCommand: CLAUDE_RESUME, icon: builtinIcon('robot'), autoOpen: true },
             { id: uid(), title: 'Shell', kind: 'shell', icon: builtinIcon('terminal'), autoOpen: true },
             { id: uid(), title: 'Files', kind: 'files', icon: builtinIcon('folder'), autoOpen: false },
         ]
@@ -118,7 +148,7 @@ export class ProjectsService {
      * Build a throwaway profile for one tab of a project: the project's base profile plus
      * `cd <cwd> && <command>`, delivered the way the shell type expects.
      */
-    async childProfile (project: Project, spec: ProjectTabSpec): Promise<PartialProfile<any> | null> {
+    async childProfile (project: Project, spec: ProjectTabSpec, ctx: LaunchContext): Promise<PartialProfile<any> | null> {
         const base = await this.baseProfile(project)
         if (!base) {
             this.notifications.error(`Project "${project.name}" has no host profile set`)
@@ -133,24 +163,25 @@ export class ProjectsService {
             disableDynamicTitle: true,
         }
 
+        const command = resolveCommand(spec, ctx)
         const parts: string[] = []
         if (project.cwd) parts.push(`cd ${quote(project.cwd, base.type === 'local')}`)
-        if (spec.command) parts.push(spec.command)
+        if (command) parts.push(command)
         if (!parts.length) return p
 
         if (base.type === 'local') {
             const shell = String(base.options?.command ?? '').toLowerCase()
             if (project.cwd) p.options.cwd = project.cwd
-            if (spec.command) {
+            if (command) {
                 if (shell.includes('powershell') || shell.includes('pwsh')) {
-                    p.options.args = ['-NoLogo', '-NoExit', '-Command', spec.command]
+                    p.options.args = ['-NoLogo', '-NoExit', '-Command', command]
                 } else if (shell.endsWith('cmd.exe') || shell === 'cmd') {
-                    p.options.args = ['/k', spec.command]
+                    p.options.args = ['/k', command]
                 } else if (shell.includes('bash') || shell.includes('zsh') || shell.includes('sh')) {
-                    p.options.args = ['-c', `${spec.command}; exec ${shellBasename(shell)} -l`]
+                    p.options.args = ['-c', `${command}; exec ${shellBasename(shell)} -l`]
                 } else {
                     // Unknown shell (WSL, fish, nu…): fall back to typing it once the prompt appears.
-                    p.options.scripts = [this.loginScript(project, spec.command)]
+                    p.options.scripts = [this.loginScript(project, command)]
                 }
             }
         } else {
@@ -172,8 +203,8 @@ export class ProjectsService {
     }
 
     /** Create (but do not add) a Tabby tab for a `shell` spec. */
-    async createShellTab (project: Project, spec: ProjectTabSpec): Promise<BaseTabComponent | null> {
-        const profile = await this.childProfile(project, spec)
+    async createShellTab (project: Project, spec: ProjectTabSpec, ctx: LaunchContext): Promise<BaseTabComponent | null> {
+        const profile = await this.childProfile(project, spec, ctx)
         if (!profile) return null
         const params = await this.profiles.newTabParametersForProfile(profile)
         if (!params) return null

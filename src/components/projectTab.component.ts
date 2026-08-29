@@ -2,12 +2,12 @@ import { AfterViewInit, Component, EmbeddedViewRef, Injector, Input, ViewChild, 
 import { Subject } from 'rxjs'
 import { AppService, BaseTabComponent, BaseTabProcess, GetRecoveryTokenOptions, MenuItemOptions, PlatformService, RecoveryToken, TabRecoveryService, TabsService } from 'tabby-core'
 import { Project, ProjectTabSpec, PROJECT_TAB_TOKEN_TYPE } from '../api'
+import { UI } from '../icons'
+import { LaunchContext, ProjectsService, newSessionId } from '../services/projects.service'
+import { FilesTabComponent } from './filesTab.component'
 
 /** Recovery token for a child opened from a project tab spec — recovered by re-deriving, not replaying. */
 const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
-import { UI } from '../icons'
-import { ProjectsService } from '../services/projects.service'
-import { FilesTabComponent } from './filesTab.component'
 
 /**
  * A top-level Tabby tab representing one project. Hosts any number of child tabs
@@ -88,6 +88,8 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
     private viewRefs = new Map<BaseTabComponent, EmbeddedViewRef<any>>()
     /** Which project tab spec a child was opened from (ad-hoc tabs are absent). */
     private specOf = new Map<BaseTabComponent, string>()
+    /** The `{{session}}` UUID each child was launched with, so recovery can resume it. */
+    private sessionOf = new Map<BaseTabComponent, string>()
     private app: AppService
     private projects: ProjectsService
     private tabs: TabsService
@@ -126,7 +128,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
                         // Re-derive from the *current* project config rather than replaying the
                         // profile snapshot Tabby stored — so config edits and fixes apply on restart.
                         const spec = this.project.tabs.find(t => t.id === token.specId)
-                        if (spec) await this.openSpec(spec, false)
+                        if (spec) await this.openSpec(spec, false, { sessionId: token.sessionId ?? newSessionId(), recovering: true })
                         continue
                     }
                     const params = await this.tabRecovery.recoverTab(token)
@@ -156,12 +158,16 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
 
     // ---- children --------------------------------------------------------------
 
-    async openSpec (spec: ProjectTabSpec, activate = true): Promise<BaseTabComponent | null> {
+    async openSpec (spec: ProjectTabSpec, activate = true, ctx?: LaunchContext): Promise<BaseTabComponent | null> {
         if (!this.project) return null
         if (spec.kind === 'files') return this.openFiles(activate)
-        const tab = await this.projects.createShellTab(this.project, spec)
+        ctx = ctx ?? { sessionId: newSessionId(), recovering: false }
+        const tab = await this.projects.createShellTab(this.project, spec, ctx)
         if (!tab) return null
-        if (spec.id !== 'adhoc') this.specOf.set(tab, spec.id)
+        if (spec.id !== 'adhoc') {
+            this.specOf.set(tab, spec.id)
+            this.sessionOf.set(tab, ctx.sessionId)
+        }
         if (spec.icon) tab.icon = spec.icon
         this.addChild(tab, activate)
         return tab
@@ -210,6 +216,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         if (idx === -1) return
         this.children.splice(idx, 1)
         this.specOf.delete(tab)
+        this.sessionOf.delete(tab)
         tab.removeFromContainer()
         this.viewRefs.delete(tab)
         if (this.active === tab) {
@@ -314,7 +321,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         for (const c of this.children) {
             const specId = this.specOf.get(c)
             if (specId) {
-                children.push({ type: SPEC_TOKEN_TYPE, specId })
+                children.push({ type: SPEC_TOKEN_TYPE, specId, sessionId: this.sessionOf.get(c) ?? null })
                 continue
             }
             const t = await this.tabRecovery.getFullRecoveryToken(c, options)

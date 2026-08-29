@@ -8,7 +8,7 @@ import * as path from 'path'
 import { Project, ProjectTabSpec, uid } from '../api'
 import { builtinIcon } from '../icons'
 import { ProjectOpenerService } from '../services/opener.service'
-import { ProjectsService } from '../services/projects.service'
+import { CLAUDE_COMMAND, CLAUDE_RESUME, ProjectsService } from '../services/projects.service'
 
 type HostMode = 'existing' | 'newssh'
 
@@ -83,7 +83,7 @@ type HostMode = 'existing' | 'newssh'
             <label>Tabs</label>
             <div class="np-tabs">
                 <label class="np-check"><input type="checkbox" class="form-check-input" [(ngModel)]="wantClaude"> Claude
-                    <input class="form-control form-control-sm mono np-cmd" [(ngModel)]="claudeCommand" [disabled]="!wantClaude" placeholder="command"></label>
+                    <input class="form-control form-control-sm mono np-cmd" [(ngModel)]="claudeCommand" [disabled]="!wantClaude" placeholder="command" title="{{ '{{' }}session{{ '}}' }} = per-tab UUID; resumed after a restart"></label>
                 <label class="np-check"><input type="checkbox" class="form-check-input" [(ngModel)]="wantShell"> Shell</label>
                 <label class="np-check" *ngIf="!isLocal"><input type="checkbox" class="form-check-input" [(ngModel)]="wantFiles"> Files (SFTP)</label>
             </div>
@@ -107,7 +107,7 @@ type HostMode = 'existing' | 'newssh'
         .np-inline input { flex: 1; }
         .np-tabs { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 4px; }
         .np-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px !important; color: var(--theme-fg) !important; }
-        .np-cmd { width: 160px; margin-left: 4px; }
+        .np-cmd { width: 260px; margin-left: 4px; }
         .mono { font-family: monospace; }
         .np-error { color: #ff615a; font-size: 13px; margin-top: 8px; }
     `],
@@ -121,7 +121,7 @@ export class NewProjectDialogComponent implements OnInit {
     ssh = { name: '', host: '', user: 'root', port: 22, auth: 'publicKey' as 'publicKey' | 'password' | 'agent', keyPath: '', password: '' }
     cwd = ''
     wantClaude = true
-    claudeCommand = 'claude'
+    claudeCommand = CLAUDE_COMMAND
     wantShell = true
     wantFiles = true
     icon: string | null = builtinIcon('folder')
@@ -224,7 +224,10 @@ export class NewProjectDialogComponent implements OnInit {
             }
 
             const tabs: ProjectTabSpec[] = []
-            if (this.wantClaude) tabs.push({ id: uid(), title: 'Claude', kind: 'shell', command: this.claudeCommand.trim() || 'claude', icon: builtinIcon('robot'), autoOpen: true })
+            if (this.wantClaude) {
+                const cmd = this.claudeCommand.trim() || CLAUDE_COMMAND
+                tabs.push({ id: uid(), title: 'Claude', kind: 'shell', command: cmd, recoverCommand: cmd === CLAUDE_COMMAND ? CLAUDE_RESUME : null, icon: builtinIcon('robot'), autoOpen: true })
+            }
             if (this.wantShell) tabs.push({ id: uid(), title: 'Shell', kind: 'shell', icon: builtinIcon('terminal'), autoOpen: true })
             if (this.wantFiles && !this.isLocal) tabs.push({ id: uid(), title: 'Files', kind: 'files', icon: builtinIcon('folder'), autoOpen: false })
 

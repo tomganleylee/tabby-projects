@@ -111,18 +111,20 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
 
                     <h4>Tabs</h4>
                     <table class="table table-sm ps-tabs">
-                        <tr><th class="w-40px"></th><th>Title</th><th class="w-100px">Kind</th><th>Command</th><th class="w-60px" title="Open when the project opens">Auto</th><th class="w-40px"></th></tr>
+                        <tr><th class="w-40px"></th><th>Title</th><th class="w-100px">Kind</th><th>Command</th><th title="Run instead of Command when the tab comes back after a Tabby restart">After restart</th><th class="w-60px" title="Open when the project opens">Auto</th><th class="w-40px"></th></tr>
                         <tr *ngFor="let t of sel.project.tabs; let i = index">
                             <td><button class="btn btn-sm btn-link" (click)="iconRow = iconRow === t ? null : t"><proj-icon [icon]="t.icon || defaultTabIcon(t)"></proj-icon></button></td>
                             <td><input class="form-control form-control-sm" [(ngModel)]="t.title" (ngModelChange)="save()"></td>
                             <td><select class="form-control form-control-sm" [(ngModel)]="t.kind" (ngModelChange)="save()"><option value="shell">Shell</option><option value="files">Files</option></select></td>
-                            <td><input class="form-control form-control-sm mono" [disabled]="t.kind !== 'shell'" placeholder="claude" [(ngModel)]="t.command" (ngModelChange)="save()"></td>
+                            <td><input class="form-control form-control-sm mono" [disabled]="t.kind !== 'shell'" placeholder="claude --session-id {{ '{{' }}session{{ '}}' }}" [(ngModel)]="t.command" (ngModelChange)="save()"></td>
+                            <td><input class="form-control form-control-sm mono" [disabled]="t.kind !== 'shell'" placeholder="(same as command)" [(ngModel)]="t.recoverCommand" (ngModelChange)="save()"></td>
                             <td><input type="checkbox" class="form-check-input" [(ngModel)]="t.autoOpen" (ngModelChange)="save()"></td>
                             <td><button class="btn btn-sm btn-link" (click)="sel.project.tabs.splice(i, 1); save()" [innerHTML]="ui.trash"></button></td>
                         </tr>
-                        <tr *ngIf="iconRow"><td colspan="6"><icon-picker [value]="iconRow.icon" (valueChange)="iconRow.icon = $event; save()"></icon-picker></td></tr>
+                        <tr *ngIf="iconRow"><td colspan="7"><icon-picker [value]="iconRow.icon" (valueChange)="iconRow.icon = $event; save()"></icon-picker></td></tr>
                     </table>
                     <button class="btn btn-sm btn-secondary" (click)="addTab(sel.project)">Add tab</button>
+                    <p class="text-muted small mt-2"><code>{{ '{{' }}session{{ '}}' }}</code> expands to a UUID unique to each opened tab. Claude Code: launch with <code>claude --session-id {{ '{{' }}session{{ '}}' }}</code> and set <em>After restart</em> to <code>claude --resume {{ '{{' }}session{{ '}}' }}</code> — the conversation comes back in the same tab after Tabby restarts.</p>
 
                     <div class="mt-4"><button class="btn btn-sm btn-danger" (click)="removeProject(sel.project)">Remove project</button></div>
                 </ng-container>

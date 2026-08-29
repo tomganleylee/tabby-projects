@@ -8,8 +8,16 @@ export interface ProjectTabSpec {
     kind: ProjectTabKind
     /** Optional icon override (`fas fa-…`, or raw `<svg>`/`<img>` markup). */
     icon?: string | null
-    /** For `shell` tabs: command to run once the shell is up (e.g. `claude`, `npm run dev`). */
+    /**
+     * For `shell` tabs: command to run once the shell is up (e.g. `claude`, `npm run dev`).
+     * `{{session}}` expands to a UUID unique to this tab instance.
+     */
     command?: string | null
+    /**
+     * Command used instead of `command` when the tab is recovered after a Tabby restart,
+     * e.g. `claude --resume {{session}}` — the same UUID the tab was launched with.
+     */
+    recoverCommand?: string | null
     /** Open this tab automatically when the project is opened. */
     autoOpen?: boolean
 }

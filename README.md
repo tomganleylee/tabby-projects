@@ -10,7 +10,7 @@ Work on all your projects from one Tabby window.
 - **Icons** — a built-in stroke set, any Font Awesome 5 class, pasted SVG, or an uploaded image.
 - **Pinned / More** — pinned projects are always listed; unpin the rest and they fold into a *More (n)* row per group. Anything open is always shown.
 - **Add from anywhere** — the rail's **+** turns any Tabby profile into a project; right-click any terminal tab → *Add to Projects* (keeps its profile and current directory).
-- Sessions are recovered on restart like any other Tabby tab.
+- **Survives restarts** — projects and their tabs come back after a Tabby restart. A tab's command can use `{{session}}` (a per-tab UUID) and a separate *After restart* command; the Claude default is `claude --session-id {{session}}` / `claude --resume {{session}}`, so the same conversation reappears in the same tab — like the VS Code extension. (Remote tabs running under tmux simply re-attach.)
 
 > Works with Tabby ≥ 1.0.200 (Angular 15 builds). Tested on 1.0.235 / Windows.
 
