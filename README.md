@@ -9,6 +9,7 @@ Work on all your projects from one Tabby window.
 - **Edit-in-place** — double-click a remote file: it's downloaded to a temp folder, opened in your editor, and uploaded again every time you save. Per-extension *Open with* overrides (e.g. `.md` → your Markdown editor).
 - **Icons** — a built-in stroke set, any Font Awesome 5 class, pasted SVG, or an uploaded image.
 - **Pinned / More** — pinned projects are always listed; unpin the rest and they fold into a *More (n)* row per group. Anything open is always shown.
+- **Needs-attention badge** — when a tab you're not looking at rings the terminal bell, it (and its project in the rail) gets a pulsing amber dot, plus an optional desktop notification that jumps straight to it. Claude Code rings the bell when it finishes or waits for input if you set `"preferredNotifChannel": "terminal_bell"` in `~/.claude/settings.json`.
 - **Add from anywhere** — the rail's **+** turns any Tabby profile into a project; right-click any terminal tab → *Add to Projects* (keeps its profile and current directory).
 - **Survives restarts** — projects and their tabs come back after a Tabby restart. A tab's command can use `{{session}}` (a per-tab UUID) and a separate *After restart* command; the Claude default is `claude --session-id {{session}}` / `claude --resume {{session}}`, so the same conversation reappears in the same tab — like the VS Code extension. (Remote tabs running under tmux simply re-attach.)
 

@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, EmbeddedViewRef, Injector, Input, ViewChild, ViewContainerRef } from '@angular/core'
 import { Subject } from 'rxjs'
-import { AppService, BaseTabComponent, BaseTabProcess, GetRecoveryTokenOptions, MenuItemOptions, PlatformService, RecoveryToken, TabRecoveryService, TabsService } from 'tabby-core'
+import { AppService, BaseTabComponent, BaseTabProcess, GetRecoveryTokenOptions, HostWindowService, MenuItemOptions, PlatformService, RecoveryToken, TabRecoveryService, TabsService } from 'tabby-core'
 import { Project, ProjectTabSpec, PROJECT_TAB_TOKEN_TYPE } from '../api'
 import { UI } from '../icons'
 import { LaunchContext, ProjectsService, newSessionId } from '../services/projects.service'
@@ -28,6 +28,7 @@ const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
                     <span class="pt-ind" *ngIf="t === active"></span>
                     <proj-icon [icon]="t.icon" [color]="t === active ? projectColor : null"></proj-icon>
                     <span class="pt-name">{{ t.customTitle || t.title }}</span>
+                    <span class="pt-attn" *ngIf="needsAttention(t)" title="Finished / waiting for you"></span>
                     <button class="pt-close" (click)="closeChild(t); $event.stopPropagation()" [innerHTML]="ui.x" title="Close"></button>
                     <span class="pt-cb" *ngIf="t === active" [style.background]="projectColor"></span>
                 </div>
@@ -56,6 +57,8 @@ const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
         .pt-ind { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--bs-light, #e8e8e8); }
         .pt-cb { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; }
         .pt-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .pt-attn { width: 8px; height: 8px; border-radius: 50%; background: #f5a623; box-shadow: 0 0 6px #f5a623; flex: none; animation: pt-pulse 1.6s ease-in-out infinite; }
+        @keyframes pt-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
         .pt-close { flex: none; width: 22px; height: 22px; border: none; border-radius: 4px; background: transparent; color: inherit; opacity: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
         .pt-close ::ng-deep svg { width: 12px; height: 12px; }
         .pt-tab:hover .pt-close, .pt-tab.active .pt-close { opacity: .7; }
@@ -90,6 +93,9 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
     private specOf = new Map<BaseTabComponent, string>()
     /** The `{{session}}` UUID each child was launched with, so recovery can resume it. */
     private sessionOf = new Map<BaseTabComponent, string>()
+    /** Children that rang the bell while not being looked at. */
+    private attention = new Set<BaseTabComponent>()
+    private hostWindow: HostWindowService
     private app: AppService
     private projects: ProjectsService
     private tabs: TabsService
@@ -103,9 +109,16 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         this.tabs = injector.get(TabsService)
         this.tabRecovery = injector.get(TabRecoveryService)
         this.platform = injector.get(PlatformService)
+        this.hostWindow = injector.get(HostWindowService)
 
         this.subscribeUntilDestroyed(this.visibility$, v => this.active?.emitVisibility(v))
-        this.subscribeUntilDestroyed(this.focused$, () => this.active?.emitFocused())
+        this.subscribeUntilDestroyed(this.focused$, () => {
+            this.active?.emitFocused()
+            if (this.active) this.clearAttention(this.active)
+        })
+        this.subscribeUntilDestroyed(this.hostWindow.windowFocused$, () => {
+            if (this.app.activeTab === this && this.active) this.clearAttention(this.active)
+        })
         this.subscribeUntilDestroyed(this.blurred$, () => this.active?.emitBlurred())
     }
 
@@ -206,6 +219,8 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         tab.subscribeUntilDestroyed(tab.titleChange$, () => this.childrenChanged$.next())
         tab.subscribeUntilDestroyed(tab.activity$, () => this.childrenChanged$.next())
         tab.subscribeUntilDestroyed(tab.progress$, p => this.setProgress(p))
+        tab.subscribeUntilDestroyed(tab.activity$, a => { if (a && !this.isLookingAt(tab)) this.displayActivity() })
+        this.watchBell(tab)
 
         if (activate || !this.active) this.select(tab)
         this.childrenChanged$.next()
@@ -217,6 +232,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         this.children.splice(idx, 1)
         this.specOf.delete(tab)
         this.sessionOf.delete(tab)
+        this.attention.delete(tab)
         tab.removeFromContainer()
         this.viewRefs.delete(tab)
         if (this.active === tab) {
@@ -241,8 +257,68 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
                 tab.emitFocused()
                 tab.clearActivity()
             })
+            if (document.hasFocus()) this.clearAttention(tab)
         }
         this.childrenChanged$.next()
+    }
+
+    // ---- bell / attention -------------------------------------------------------
+
+    /** True when the user can currently see this child: window focused, project tab active, child active. */
+    isLookingAt (tab: BaseTabComponent): boolean {
+        return document.hasFocus() && this.app.activeTab === this && this.active === tab
+    }
+
+    needsAttention (tab: BaseTabComponent): boolean {
+        return this.attention.has(tab)
+    }
+
+    get hasAttention (): boolean {
+        return this.attention.size > 0
+    }
+
+    clearAttention (tab: BaseTabComponent): void {
+        if (this.attention.delete(tab)) {
+            if (!this.attention.size) this.clearActivity()
+            this.childrenChanged$.next()
+        }
+    }
+
+    private watchBell (tab: BaseTabComponent): void {
+        const started = Date.now()
+        const attach = (): void => {
+            const frontend = (tab as any).frontend
+            if (frontend?.bell$) {
+                tab.subscribeUntilDestroyed(frontend.bell$, () => this.onBell(tab))
+            } else if (Date.now() - started < 30_000 && !(tab as any)._destroyCalled) {
+                setTimeout(attach, 500)
+            }
+        }
+        attach()
+    }
+
+    private onBell (tab: BaseTabComponent): void {
+        if (this.isLookingAt(tab)) return
+        this.attention.add(tab)
+        this.displayActivity()
+        this.childrenChanged$.next()
+        if (this.projects.cfg.notifyOnBell) this.notify(tab)
+    }
+
+    private notify (tab: BaseTabComponent): void {
+        try {
+            const n = new Notification(`${this.project?.name ?? 'Project'} · ${tab.customTitle || tab.title}`, {
+                body: 'Finished — waiting for you',
+                silent: true,
+            })
+            n.onclick = () => {
+                this.hostWindow.bringToFront()
+                this.app.selectTab(this)
+                this.select(tab)
+            }
+        } catch (e) {
+            console.warn('tabby-projects: notification failed', e)
+        }
     }
 
     selectRelative (delta: number): void {

@@ -11,6 +11,7 @@ export class ProjectsConfigProvider extends ConfigProvider {
             // sequences that arrive in the same chunk as the prompt (bash bracketed-paste etc.).
             promptExpect: '[$#%>] \\S*\\s*$',
             openWith: {},
+            notifyOnBell: true,
             groups: [],
             items: [],
         },

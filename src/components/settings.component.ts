@@ -36,6 +36,7 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                     <h3>Projects</h3>
                     <div class="form-line"><label>Show project rail</label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.showRail" (ngModelChange)="save()"></div>
                     <div class="form-line"><label>Hide Tabby's own tab bar while the rail is shown</label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.hideTabBar" (ngModelChange)="save()"></div>
+                    <div class="form-line"><label>Desktop notification when a tab rings the bell while you're elsewhere <small>(Claude Code: set <code>preferredNotifChannel</code> to <code>terminal_bell</code> in ~/.claude/settings.json)</small></label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.notifyOnBell" (ngModelChange)="save()"></div>
                     <div class="form-line"><label>Rail width</label><input type="number" class="form-control form-control-sm w-100px" min="160" max="480" [(ngModel)]="cfg.railWidth" (ngModelChange)="save()"></div>
                     <div class="form-line">
                         <label>Prompt pattern <small>(regex; a shell is "ready" when its output matches this — commands are typed after it)</small></label>

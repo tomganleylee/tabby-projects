@@ -90,12 +90,12 @@ interface RailGroup {
                 <span class="pr-bar" *ngIf="isActive(p)" [style.background]="colorFor(p)"></span>
                 <span class="pr-ico" [style.color]="isActive(p) || tabFor(p) ? colorFor(p) : null">
                     <proj-icon [icon]="projects.iconFor(p)"></proj-icon>
-                    <span class="pr-dot" *ngIf="collapsed && tabFor(p)"></span>
+                    <span class="pr-dot" *ngIf="collapsed && tabFor(p)" [class.attn]="tabFor(p)?.hasAttention"></span>
                 </span>
                 <ng-container *ngIf="!collapsed">
                     <span class="pr-name">{{ p.name }}</span>
                     <span class="pr-count" *ngIf="tabFor(p) as t">{{ t.children.length }}</span>
-                    <span class="pr-dot" *ngIf="tabFor(p)"></span>
+                    <span class="pr-dot" *ngIf="tabFor(p)" [class.attn]="tabFor(p)?.hasAttention"></span>
                 </ng-container>
             </div>
         </ng-template>
@@ -143,6 +143,9 @@ interface RailGroup {
         .pr-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .pr-count { font-size: 11px; color: var(--theme-fg-more-2); background: var(--theme-bg-more); padding: 1px 6px; border-radius: 9px; }
         .pr-dot { width: 7px; height: 7px; border-radius: 50%; background: #b1e969; flex: none; }
+        .pr-dot.attn { width: 9px; height: 9px; background: #f5a623; box-shadow: 0 0 6px #f5a623; animation: pr-pulse 1.6s ease-in-out infinite; }
+        .pr-item.compact .pr-dot.attn { right: -5px; top: -4px; }
+        @keyframes pr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
         .pr-item.compact .pr-dot { position: absolute; right: -4px; top: -3px; }
         .pr-item .pr-close { opacity: 0; }
         .pr-item:hover .pr-close { opacity: 1; }

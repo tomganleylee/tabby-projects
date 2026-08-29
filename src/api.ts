@@ -55,6 +55,8 @@ export interface ProjectsConfig {
     promptExpect: string
     /** Extension (no dot, lower-case) → program path used by "Open with" for remote files. */
     openWith: Record<string, string>
+    /** Show an OS notification when a tab you're not looking at rings the terminal bell. */
+    notifyOnBell: boolean
     groups: ProjectGroup[]
     items: Project[]
 }
