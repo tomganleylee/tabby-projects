@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, HostBinding, NgZone, OnDestroy, OnInit } 
 import { Subscription } from 'rxjs'
 import { AppService, BaseTabComponent, ConfigService, HostAppService, Platform, PlatformService, ProfilesService, SelectorService } from 'tabby-core'
 import { SettingsTabComponent } from 'tabby-settings'
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { NewProjectDialogComponent } from './newProjectDialog.component'
 import { Project, ProjectGroup, ProjectsConfig } from '../api'
 import { UI } from '../icons'
 import { ProjectOpenerService } from '../services/opener.service'
@@ -21,7 +23,7 @@ interface RailGroup {
         <div class="pr-head">
             <button class="pr-iconbtn" (click)="toggleCollapse()" [innerHTML]="ui.sidebar" [title]="collapsed ? 'Expand' : 'Collapse'"></button>
             <span class="pr-title" *ngIf="!collapsed">Projects</span>
-            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus" title="Add project from a profile"></button>
+            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus" title="New project / server"></button>
         </div>
         <div class="pr-search" *ngIf="!collapsed" (click)="opener.quickOpen()">
             <span [innerHTML]="ui.search"></span><span class="pr-search-text">Jump to project…</span>
@@ -169,6 +171,7 @@ export class RailComponent implements OnInit, OnDestroy {
         private hostApp: HostAppService,
         private zone: NgZone,
         private cdr: ChangeDetectorRef,
+        private ngbModal: NgbModal,
     ) { }
 
     get cfg (): ProjectsConfig { return this.projects.cfg }
@@ -301,18 +304,10 @@ export class RailComponent implements OnInit, OnDestroy {
     }
 
     async addProject (): Promise<void> {
-        const list = await this.projects.allProfiles()
-        const picked = await this.selector.show<any>('New project from profile', [
-            { name: 'Blank project', description: 'Set everything up by hand', icon: this.ui.plus, result: 'blank', weight: -1 },
-            ...list.map(p => ({
-                ...this.profiles.selectorOptionForProfile(p),
-                result: p,
-            })),
-        ])
-        if (!picked) return
-        const project = picked === 'blank' ? this.projects.newProject() : this.projects.newProjectFromProfile(picked)
+        try {
+            await this.ngbModal.open(NewProjectDialogComponent, { size: 'lg', backdrop: 'static' }).result
+        } catch { /* dismissed */ }
         this.rebuild()
-        this.openSettings(project.id)
     }
 
     async newTab (): Promise<void> {

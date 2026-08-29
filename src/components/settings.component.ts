@@ -4,6 +4,8 @@ import { Project, ProjectGroup, ProjectTabSpec, ProjectsConfig, uid } from '../a
 import { UI, builtinIcon } from '../icons'
 import { ProjectOpenerService } from '../services/opener.service'
 import { ProjectsService } from '../services/projects.service'
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { NewProjectDialogComponent } from './newProjectDialog.component'
 
 type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | { kind: 'project', project: Project }
 
@@ -166,6 +168,7 @@ export class ProjectsSettingsComponent implements OnInit {
         public projects: ProjectsService,
         public opener: ProjectOpenerService,
         private app: AppService,
+        private ngbModal: NgbModal,
     ) { }
 
     get cfg (): ProjectsConfig { return this.projects.cfg }
@@ -206,9 +209,11 @@ export class ProjectsSettingsComponent implements OnInit {
         this.save()
     }
 
-    addProject (): void {
-        const p = this.projects.newProject()
-        this.sel = { kind: 'project', project: p }
+    async addProject (): Promise<void> {
+        try {
+            const p = await this.ngbModal.open(NewProjectDialogComponent, { size: 'lg', backdrop: 'static' }).result
+            if (p) this.sel = { kind: 'project', project: p }
+        } catch { /* dismissed */ }
     }
 
     removeProject (p: Project): void {

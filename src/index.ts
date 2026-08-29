@@ -12,6 +12,7 @@ import { ProjIconComponent } from './components/projIcon.component'
 import { ProjectTabComponent, ProjectsSettingsOpener } from './components/projectTab.component'
 import { RailComponent } from './components/rail.component'
 import { ProjectsSettingsComponent } from './components/settings.component'
+import { NewProjectDialogComponent } from './components/newProjectDialog.component'
 import {
     AddToProjectsContextMenu, FilesTabRecoveryProvider, ProjectTabRecoveryProvider, ProjectsHotkeyProvider, ProjectsSFTPContextMenu,
     ProjectsSettingsOpenerImpl, ProjectsSettingsTabProvider, ProjectsToolbarButtonProvider,
@@ -39,6 +40,7 @@ import { RailService } from './services/rail.service'
         FilesTabComponent,
         RailComponent,
         ProjectsSettingsComponent,
+        NewProjectDialogComponent,
     ],
 })
 export default class ProjectsModule {
