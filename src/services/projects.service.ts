@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { BaseTabComponent, ConfigService, NotificationsService, PartialProfile, Profile, ProfilesService, TabsService } from 'tabby-core'
+import { BaseTabComponent, ConfigService, LogService, Logger, NotificationsService, PartialProfile, Profile, ProfilesService, TabsService } from 'tabby-core'
 import { Project, ProjectGroup, ProjectTabSpec, ProjectsConfig, uid } from '../api'
 import { builtinIcon } from '../icons'
 
@@ -36,12 +36,17 @@ export function resolveCommand (spec: ProjectTabSpec, ctx: LaunchContext): strin
 /** Config access + turning a project's tab spec into a real Tabby tab. Knows nothing about the UI. */
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
+    private logger: Logger
+
     constructor (
         private config: ConfigService,
         private profiles: ProfilesService,
         private tabs: TabsService,
         private notifications: NotificationsService,
-    ) { }
+        log: LogService,
+    ) {
+        this.logger = log.create('projects')
+    }
 
     get cfg (): ProjectsConfig {
         return this.config.store.projects
@@ -164,6 +169,7 @@ export class ProjectsService {
         }
 
         const command = resolveCommand(spec, ctx)
+        this.logger.info(`launch "${project.name} · ${spec.title}" recovering=${ctx.recovering} session=${ctx.sessionId} command=${JSON.stringify(command)}`)
         const parts: string[] = []
         if (project.cwd) parts.push(`cd ${quote(project.cwd, base.type === 'local')}`)
         if (command) parts.push(command)

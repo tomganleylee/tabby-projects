@@ -146,7 +146,14 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
                         // Re-derive from the *current* project config rather than replaying the
                         // profile snapshot Tabby stored — so config edits and fixes apply on restart.
                         const spec = this.project.tabs.find(t => t.id === token.specId)
-                        if (spec) await this.openSpec(spec, false, { sessionId: token.sessionId ?? newSessionId(), recovering: true })
+                        if (spec) await this.openSpec(spec, false, { sessionId: token.sessionId ?? newSessionId(), recovering: !!token.sessionId })
+                        continue
+                    }
+                    // A plain terminal snapshot whose profile name is "<project> · <tab>" was opened
+                    // from a spec by an older build: adopt it so it becomes resumable from now on.
+                    const legacy = this.project.tabs.find(t => token.profile?.name === `${this.project!.name} · ${t.title}` && t.kind === 'shell')
+                    if (legacy) {
+                        await this.openSpec(legacy, false, { sessionId: newSessionId(), recovering: false })
                         continue
                     }
                     const params = await this.tabRecovery.recoverTab(token)
