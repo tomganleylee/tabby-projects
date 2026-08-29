@@ -9,6 +9,7 @@ import { ProjectsConfigProvider } from './config'
 import { FilesTabComponent } from './components/filesTab.component'
 import { IconPickerComponent } from './components/iconPicker.component'
 import { ProjIconComponent } from './components/projIcon.component'
+import { SafeHtmlPipe } from './components/safeHtml.pipe'
 import { ProjectTabComponent, ProjectsSettingsOpener } from './components/projectTab.component'
 import { RailComponent } from './components/rail.component'
 import { ProjectsSettingsComponent } from './components/settings.component'
@@ -34,6 +35,7 @@ import { RailService } from './services/rail.service'
         { provide: TabContextMenuItemProvider, useClass: AddToProjectsContextMenu, multi: true },
     ],
     declarations: [
+        SafeHtmlPipe,
         ProjIconComponent,
         IconPickerComponent,
         ProjectTabComponent,

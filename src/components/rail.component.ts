@@ -21,12 +21,12 @@ interface RailGroup {
     selector: 'projects-rail',
     template: `
         <div class="pr-head">
-            <button class="pr-iconbtn" (click)="toggleCollapse()" [innerHTML]="ui.sidebar" [title]="collapsed ? 'Expand' : 'Collapse'"></button>
+            <button class="pr-iconbtn" (click)="toggleCollapse()" [innerHTML]="ui.sidebar | safeHtml" [title]="collapsed ? 'Expand' : 'Collapse'"></button>
             <span class="pr-title" *ngIf="!collapsed">Projects</span>
-            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus" title="New project / server"></button>
+            <button class="pr-iconbtn" *ngIf="!collapsed" (click)="addProject()" [innerHTML]="ui.plus | safeHtml" title="New project / server"></button>
         </div>
         <div class="pr-search" *ngIf="!collapsed" (click)="opener.quickOpen()">
-            <span [innerHTML]="ui.search"></span><span class="pr-search-text">Jump to project…</span>
+            <span [innerHTML]="ui.search | safeHtml"></span><span class="pr-search-text">Jump to project…</span>
         </div>
 
         <div class="pr-scroll">
@@ -35,7 +35,7 @@ interface RailGroup {
                     <span class="pr-sw" [style.background]="g.group?.color || 'var(--theme-fg-more-2)'"></span>
                     <ng-container *ngIf="!collapsed">
                         <span class="pr-group-name">{{ g.group?.name || 'Ungrouped' }}</span>
-                        <span class="pr-chev" [innerHTML]="isCollapsed(g.group) ? ui.chevRight : ui.chevDown"></span>
+                        <span class="pr-chev" [innerHTML]="(isCollapsed(g.group) ? ui.chevRight : ui.chevDown) | safeHtml"></span>
                     </ng-container>
                 </div>
                 <ng-container *ngIf="!isCollapsed(g.group)">
@@ -44,7 +44,7 @@ interface RailGroup {
                     </ng-container>
                     <ng-container *ngIf="g.more.length">
                         <div class="pr-more" [class.compact]="collapsed" (click)="toggleMore(g)" title="More projects">
-                            <span class="pr-ico" [innerHTML]="isMoreOpen(g) ? ui.chevDown : ui.chevRight"></span>
+                            <span class="pr-ico" [innerHTML]="(isMoreOpen(g) ? ui.chevDown : ui.chevRight) | safeHtml"></span>
                             <span class="pr-name" *ngIf="!collapsed">More <span class="pr-count">{{ g.more.length }}</span></span>
                         </div>
                         <ng-container *ngIf="isMoreOpen(g)">
@@ -71,7 +71,7 @@ interface RailGroup {
                     <span class="pr-ico"><proj-icon [icon]="t.icon || ui.terminal" [color]="t.color"></proj-icon></span>
                     <ng-container *ngIf="!collapsed">
                         <span class="pr-name">{{ t.customTitle || t.title }}</span>
-                        <button class="pr-close" (click)="app.closeTab(t, true); $event.stopPropagation()" [innerHTML]="ui.x"></button>
+                        <button class="pr-close" (click)="app.closeTab(t, true); $event.stopPropagation()" [innerHTML]="ui.x | safeHtml"></button>
                     </ng-container>
                 </div>
             </div>
@@ -102,10 +102,10 @@ interface RailGroup {
 
         <div class="pr-foot">
             <button class="pr-footbtn" (click)="newTab()" [title]="'New terminal tab'">
-                <span [innerHTML]="ui.plus"></span><span *ngIf="!collapsed">New tab</span>
+                <span [innerHTML]="ui.plus | safeHtml"></span><span *ngIf="!collapsed">New tab</span>
             </button>
             <button class="pr-footbtn" (click)="openSettings()" [title]="'Manage projects'">
-                <span [innerHTML]="ui.cog"></span><span *ngIf="!collapsed">Manage</span>
+                <span [innerHTML]="ui.cog | safeHtml"></span><span *ngIf="!collapsed">Manage</span>
             </button>
         </div>
         <div class="pr-grip" *ngIf="!collapsed" (mousedown)="startResize($event)"></div>

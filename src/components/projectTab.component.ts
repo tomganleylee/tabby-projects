@@ -29,14 +29,16 @@ const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
                     <proj-icon [icon]="t.icon" [color]="t === active ? projectColor : null"></proj-icon>
                     <span class="pt-name">{{ t.customTitle || t.title }}</span>
                     <span class="pt-attn" *ngIf="needsAttention(t)" title="Finished / waiting for you"></span>
-                    <button class="pt-close" (click)="closeChild(t); $event.stopPropagation()" [innerHTML]="ui.x" title="Close"></button>
+                    <button class="pt-close" (click)="closeChild(t); $event.stopPropagation()" [innerHTML]="ui.x | safeHtml" title="Close"></button>
                     <span class="pt-cb" *ngIf="t === active" [style.background]="projectColor"></span>
                 </div>
-                <button class="pt-btn" (click)="addTabMenu($event)" [innerHTML]="ui.plus" title="New tab in this project"></button>
+                <button class="pt-btn pt-new" (click)="addTabMenu($event)" title="New tab in this project (Ctrl-Alt-N)">
+                    <span [innerHTML]="ui.plus | safeHtml"></span><span class="pt-new-label">New tab</span>
+                </button>
             </div>
             <div class="pt-space"></div>
-            <button class="pt-btn" (click)="openFiles()" [innerHTML]="ui.folder" title="Files"></button>
-            <button class="pt-btn" (click)="projectMenu($event)" [innerHTML]="ui.dots" title="Project"></button>
+            <button class="pt-btn" (click)="openFiles()" [innerHTML]="ui.folder | safeHtml" title="Files"></button>
+            <button class="pt-btn" (click)="projectMenu($event)" [innerHTML]="ui.dots | safeHtml" title="Project"></button>
         </div>
         <div class="pt-body">
             <ng-container #vc></ng-container>
@@ -65,6 +67,9 @@ const SPEC_TOKEN_TYPE = 'app:tabby-projects-spec'
         .pt-close:hover { opacity: 1 !important; background: rgba(0,0,0,.25); }
         .pt-btn { flex: none; width: calc(38px * var(--spaciness, 1)); border: none; background: transparent; color: var(--theme-fg-more); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; -webkit-app-region: no-drag; }
         .pt-btn ::ng-deep svg { width: 16px; height: 16px; }
+        .pt-new { width: auto; gap: 6px; padding: 0 12px; font-size: 12px; color: var(--theme-fg-more-2); }
+        .pt-new:hover { color: var(--theme-fg); }
+        .pt-new ::ng-deep svg { width: 13px; height: 13px; }
         .pt-btn:hover { background: rgba(0,0,0,.125); color: var(--theme-fg); }
         .pt-space { flex: 1; -webkit-app-region: drag; }
         .pt-body { position: relative; flex: 1; min-height: 0; background: var(--body-bg); }

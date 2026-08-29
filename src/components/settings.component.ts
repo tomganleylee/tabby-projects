@@ -15,9 +15,9 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
         <div class="ps">
             <div class="ps-side">
                 <div class="ps-side-item" [class.active]="sel.kind === 'general'" (click)="sel = { kind: 'general' }">
-                    <span [innerHTML]="ui.cog"></span><span>General</span>
+                    <span [innerHTML]="ui.cog | safeHtml"></span><span>General</span>
                 </div>
-                <div class="ps-side-h">Projects <button class="btn btn-sm btn-link" (click)="addProject()" title="Add project" [innerHTML]="ui.plus"></button></div>
+                <div class="ps-side-h">Projects <button class="btn btn-sm btn-link" (click)="addProject()" title="Add project" [innerHTML]="ui.plus | safeHtml"></button></div>
                 <ng-container *ngFor="let g of groupsWithProjects()">
                     <div class="ps-side-group" *ngIf="g.group" [class.active]="isSel('group', g.group)" (click)="sel = { kind: 'group', group: g.group }">
                         <span class="ps-sw" [style.background]="g.group.color || 'var(--theme-fg-more-2)'"></span>{{ g.group.name }}
@@ -27,7 +27,7 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                         <proj-icon [icon]="projects.iconFor(p)" [color]="projects.colorFor(p)"></proj-icon><span>{{ p.name }}</span>
                     </div>
                 </ng-container>
-                <div class="ps-side-h">Groups <button class="btn btn-sm btn-link" (click)="addGroup()" title="Add group" [innerHTML]="ui.plus"></button></div>
+                <div class="ps-side-h">Groups <button class="btn btn-sm btn-link" (click)="addGroup()" title="Add group" [innerHTML]="ui.plus | safeHtml"></button></div>
             </div>
 
             <div class="ps-main">
@@ -49,7 +49,7 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                         <tr *ngFor="let row of openWithRows; let i = index">
                             <td class="w-100px"><input class="form-control form-control-sm" placeholder="md" [(ngModel)]="row.ext" (ngModelChange)="saveOpenWith()"></td>
                             <td><input class="form-control form-control-sm" placeholder="C:\\Path\\To\\Editor.exe" [(ngModel)]="row.program" (ngModelChange)="saveOpenWith()"></td>
-                            <td class="w-40px"><button class="btn btn-sm btn-link" (click)="openWithRows.splice(i, 1); saveOpenWith()" [innerHTML]="ui.trash"></button></td>
+                            <td class="w-40px"><button class="btn btn-sm btn-link" (click)="openWithRows.splice(i, 1); saveOpenWith()" [innerHTML]="ui.trash | safeHtml"></button></td>
                         </tr>
                     </table>
                     <button class="btn btn-sm btn-secondary" (click)="openWithRows.push({ ext: '', program: '' })">Add extension</button>
@@ -120,7 +120,7 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                             <td><input class="form-control form-control-sm mono" [disabled]="t.kind !== 'shell'" placeholder="claude --session-id {{ '{{' }}session{{ '}}' }}" [(ngModel)]="t.command" (ngModelChange)="save()"></td>
                             <td><input class="form-control form-control-sm mono" [disabled]="t.kind !== 'shell'" placeholder="(same as command)" [(ngModel)]="t.recoverCommand" (ngModelChange)="save()"></td>
                             <td><input type="checkbox" class="form-check-input" [(ngModel)]="t.autoOpen" (ngModelChange)="save()"></td>
-                            <td><button class="btn btn-sm btn-link" (click)="sel.project.tabs.splice(i, 1); save()" [innerHTML]="ui.trash"></button></td>
+                            <td><button class="btn btn-sm btn-link" (click)="sel.project.tabs.splice(i, 1); save()" [innerHTML]="ui.trash | safeHtml"></button></td>
                         </tr>
                         <tr *ngIf="iconRow"><td colspan="7"><icon-picker [value]="iconRow.icon" (valueChange)="iconRow.icon = $event; save()"></icon-picker></td></tr>
                     </table>
