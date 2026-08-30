@@ -227,7 +227,10 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
         const el = ref.rootNodes[0] as HTMLElement
         el.classList.add('pt-child', 'pt-hidden')
 
-        tab.subscribeUntilDestroyed(tab.destroyed$, () => this.removeChild(tab))
+        // Deliberately NOT subscribeUntilDestroyed: Tabby's own destroyed$ handler (registered
+        // first) tears the component down, which would cancel a scoped subscription before it
+        // fires — leaving a ghost row in the strip. destroyed$ fires once, so no leak.
+        tab.destroyed$.subscribe(() => this.removeChild(tab))
         tab.subscribeUntilDestroyed(tab.titleChange$, () => this.childrenChanged$.next())
         tab.subscribeUntilDestroyed(tab.activity$, () => this.childrenChanged$.next())
         tab.subscribeUntilDestroyed(tab.progress$, p => this.setProgress(p))
@@ -342,6 +345,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
     async closeChild (tab: BaseTabComponent): Promise<void> {
         if (!await tab.canClose()) return
         tab.destroy()
+        this.removeChild(tab) // idempotent — belt and braces alongside the destroyed$ handler
     }
 
     getSSHSession (): any | null {
