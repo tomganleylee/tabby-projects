@@ -30,7 +30,9 @@ export function resolveCommand (spec: ProjectTabSpec, ctx: LaunchContext): strin
         if (spec.recoverCommand) cmd = spec.recoverCommand
         else if (cmd?.includes('--session-id {{session}}')) cmd = cmd.replace('--session-id {{session}}', '--resume {{session}}')
     }
-    return cmd ? cmd.replace(/\{\{\s*session\s*\}\}/g, ctx.sessionId) : null
+    return cmd
+        ? cmd.replace(/\{\{\s*session\s*\}\}/g, ctx.sessionId).replace(/\{\{\s*sid\s*\}\}/g, ctx.sessionId.slice(0, 8))
+        : null
 }
 
 /** Config access + turning a project's tab spec into a real Tabby tab. Knows nothing about the UI. */

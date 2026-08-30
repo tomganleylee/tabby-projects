@@ -10,7 +10,8 @@ export interface ProjectTabSpec {
     icon?: string | null
     /**
      * For `shell` tabs: command to run once the shell is up (e.g. `claude`, `npm run dev`).
-     * `{{session}}` expands to a UUID unique to this tab instance.
+     * `{{session}}` expands to a UUID unique to this tab instance; `{{sid}}` to its first 8 chars
+     * (handy for tmux session names).
      */
     command?: string | null
     /**

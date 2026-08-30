@@ -44,7 +44,14 @@ For local PowerShell / cmd / bash the command is passed as a shell argument (`-N
 
 ### Tip: persistent remote sessions
 
-Point a tab's command at `tmux new -A -s myproject` (or a tiny wrapper) and the session survives disconnects; reopening the project just re-attaches.
+Give each tab its own tmux session and Claude survives both Tabby restarts *and* SSH drops:
+
+| | |
+|---|---|
+| Command | `tmux new -A -s claude-{{sid}} -c /srv/my-api 'claude --session-id {{session}}; exec bash'` |
+| After restart | `tmux new -A -s claude-{{sid}} -c /srv/my-api 'claude --resume {{session}}; exec bash'` |
+
+If the tmux session is still alive, `-A` simply re-attaches (Claude never stopped); if the host rebooted, the *After restart* command resumes the conversation by id. Use a distinct session name per tab (`{{sid}}`) — a shared name would make a second tab mirror the first.
 
 ## Keyboard
 
