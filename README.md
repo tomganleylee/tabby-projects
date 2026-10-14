@@ -7,6 +7,7 @@ Work on all your projects from one Tabby window.
 - **One click** opens a project: connects to its host (local shell or SSH), `cd`s into the working directory and runs each tab's command.
 - **Remote file browser** for SSH projects — Tabby's own SFTP panel, docked as a tab.
 - **Edit-in-place** — double-click a remote file: it's downloaded to a temp folder, opened in your editor, and uploaded again every time you save. Per-extension *Open with* overrides (e.g. `.md` → your Markdown editor).
+- **Transfer links** — `[[download:/path]]` and `[[upload:/dir/]]` anywhere in terminal output become clickable: download (or open) a remote file, or upload files into a remote folder, through the tab's own SSH session. Tell Claude Code to emit them and it can hand you files, or ask you for them, in its replies.
 - **Icons** — a built-in stroke set, any Font Awesome 5 class, pasted SVG, or an uploaded image.
 - **Pinned / More** — pinned projects are always listed; unpin the rest and they fold into a *More (n)* row per group. Anything open is always shown.
 - **Needs-attention badge** — when a tab you're not looking at rings the terminal bell, it (and its project in the rail) gets a pulsing amber dot, plus an optional desktop notification that jumps straight to it. Claude Code rings the bell when it finishes or waits for input if you set `"preferredNotifChannel": "terminal_bell"` in `~/.claude/settings.json`.
@@ -52,6 +53,30 @@ Give each tab its own tmux session and Claude survives both Tabby restarts *and*
 | After restart | `tmux new -A -s claude-{{sid}} -c /srv/my-api 'claude --resume {{session}}; exec bash'` |
 
 If the tmux session is still alive, `-A` simply re-attaches (Claude never stopped); if the host rebooted, the *After restart* command resumes the conversation by id. Use a distinct session name per tab (`{{sid}}`) — a shared name would make a second tab mirror the first.
+
+## Transfer links
+
+Any terminal tab (not just project tabs) turns these into links:
+
+| Text in the terminal | Click gives you |
+|---|---|
+| `[[download:/srv/app/out/report.docx]]` | **Download…** (save dialog), **Open** (edit-in-place, as in Files), **Copy path**. A folder offers **Download folder…**. |
+| `[[upload:/srv/app/inbox/]]` | **Upload files here…** / **Upload a folder here…**. Missing folders are created; existing files are only replaced after you confirm. |
+| `[[upload:/srv/app/data/input.csv]]` | **Upload a file as input.csv…** (whatever you pick is saved under that name). |
+
+Transfers use Tabby's own dialogs and show progress in its transfers menu. In a local tab a download link offers **Open** / **Show in folder** instead; upload links need SSH. Tokens that Claude Code or tmux wrap onto a second line still work. **Open** is never offered for executables or scripts (`.exe`, `.ps1`, `.js`, …), because anything printed to the terminal can produce a link; download them and look first. Honours Tabby's *clickable links modifier* setting; switch off under Settings → Projects.
+
+### Telling Claude Code to use them
+
+Add to `~/.claude/CLAUDE.md` on each host you SSH into (or a project's `CLAUDE.md`):
+
+```markdown
+## File transfer (Tabby links)
+I read your replies in Tabby, which turns these markers into clickable download/upload links:
+- `[[download:/absolute/path]]` - whenever you create, export or point me at a file or folder I am likely to want on my own machine (documents, spreadsheets, images, archives, logs), or I ask for a file, give one marker per item.
+- `[[upload:/absolute/dir/]]` - when you need a file from me, name a directory (trailing slash) or an exact destination file path. Pick a sensible folder (e.g. an `inbox/` next to the work) if I have not named one. Then wait for me to say it is uploaded, and check the folder before continuing.
+Rules: absolute paths only (no `~`), each marker on its own line as plain text, no surrounding punctuation inside the brackets. Prefer filenames without spaces for files you create.
+```
 
 ## Keyboard
 

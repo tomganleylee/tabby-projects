@@ -12,6 +12,8 @@ export class ProjectsConfigProvider extends ConfigProvider {
             promptExpect: '[$#%>] \\S*\\s*$',
             openWith: {},
             notifyOnBell: true,
+            // [[download:/path]] / [[upload:/dir/]] in terminal output become clickable.
+            transferLinks: true,
             groups: [],
             items: [],
         },
