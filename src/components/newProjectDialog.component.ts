@@ -8,7 +8,7 @@ import * as path from 'path'
 import { Project, ProjectTabSpec, uid } from '../api'
 import { builtinIcon } from '../icons'
 import { ProjectOpenerService } from '../services/opener.service'
-import { CLAUDE_COMMAND, CLAUDE_RESUME, ProjectsService } from '../services/projects.service'
+import { AGENTS_COMMAND, CLAUDE_COMMAND, CLAUDE_RESUME, ProjectsService } from '../services/projects.service'
 
 type HostMode = 'existing' | 'newssh'
 
@@ -84,6 +84,7 @@ type HostMode = 'existing' | 'newssh'
             <div class="np-tabs">
                 <label class="np-check"><input type="checkbox" class="form-check-input" [(ngModel)]="wantClaude"> Claude
                     <input class="form-control form-control-sm mono np-cmd" [(ngModel)]="claudeCommand" [disabled]="!wantClaude" placeholder="command" title="{{ '{{' }}session{{ '}}' }} = per-tab UUID; resumed after a restart"></label>
+                <label class="np-check" title="claude agents: start and watch background Claude sessions; they keep running when the tab closes"><input type="checkbox" class="form-check-input" [(ngModel)]="wantAgents"> Claude agents</label>
                 <label class="np-check"><input type="checkbox" class="form-check-input" [(ngModel)]="wantShell"> Shell</label>
                 <label class="np-check" *ngIf="!isLocal"><input type="checkbox" class="form-check-input" [(ngModel)]="wantFiles"> Files (SFTP)</label>
             </div>
@@ -99,7 +100,8 @@ type HostMode = 'existing' | 'newssh'
     `,
     styles: [`
         .np label { font-size: 12px; color: var(--theme-fg-more-2); }
-        .form-line { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .form-line { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 12px; }
+        .form-line > .form-control { width: auto; }
         .np-seg { display: flex; gap: 4px; margin: 4px 0 12px; }
         .np-seg button { border: 1px solid var(--theme-bg-more-2); background: transparent; color: var(--theme-fg-more); padding: 6px 12px; border-radius: 5px; cursor: pointer; }
         .np-seg button.active { background: var(--theme-bg-more-2); color: var(--theme-fg); }
@@ -122,6 +124,7 @@ export class NewProjectDialogComponent implements OnInit {
     cwd = ''
     wantClaude = true
     claudeCommand = CLAUDE_COMMAND
+    wantAgents = false
     wantShell = true
     wantFiles = true
     icon: string | null = builtinIcon('folder')
@@ -228,6 +231,7 @@ export class NewProjectDialogComponent implements OnInit {
                 const cmd = this.claudeCommand.trim() || CLAUDE_COMMAND
                 tabs.push({ id: uid(), title: 'Claude', kind: 'shell', command: cmd, recoverCommand: cmd === CLAUDE_COMMAND ? CLAUDE_RESUME : null, icon: builtinIcon('robot'), autoOpen: true })
             }
+            if (this.wantAgents) tabs.push({ id: uid(), title: 'Claude agents', kind: 'shell', command: AGENTS_COMMAND, icon: builtinIcon('users'), autoOpen: true })
             if (this.wantShell) tabs.push({ id: uid(), title: 'Shell', kind: 'shell', icon: builtinIcon('terminal'), autoOpen: true })
             if (this.wantFiles && !this.isLocal) tabs.push({ id: uid(), title: 'Files', kind: 'files', icon: builtinIcon('folder'), autoOpen: false })
 

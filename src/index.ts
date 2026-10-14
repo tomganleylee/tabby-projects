@@ -22,6 +22,7 @@ import {
 import { ProjectOpenerService } from './services/opener.service'
 import { RailService } from './services/rail.service'
 import { TransferLinksDecorator } from './transferLinks'
+import { UploadBoxDecorator } from './uploadBox'
 
 @NgModule({
     imports: [CommonModule, FormsModule],
@@ -36,6 +37,7 @@ import { TransferLinksDecorator } from './transferLinks'
         { provide: ProjectsSettingsOpener, useClass: ProjectsSettingsOpenerImpl },
         { provide: TabContextMenuItemProvider, useClass: AddToProjectsContextMenu, multi: true },
         { provide: TerminalDecorator, useClass: TransferLinksDecorator, multi: true },
+        { provide: TerminalDecorator, useClass: UploadBoxDecorator, multi: true },
     ],
     declarations: [
         SafeHtmlPipe,

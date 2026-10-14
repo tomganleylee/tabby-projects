@@ -6,6 +6,27 @@ import { builtinIcon } from '../icons'
 /** Default Claude Code commands: a fixed session id at launch, resumed by id after a restart. */
 export const CLAUDE_COMMAND = 'claude --session-id {{session}}'
 export const CLAUDE_RESUME = 'claude --resume {{session}}'
+/** Claude Code's agent view: start and watch background sessions, which keep running without the tab. */
+export const AGENTS_COMMAND = 'claude agents'
+
+/**
+ * Tabs every project's "New tab" menu offers (unless the project already has one running the
+ * same program). Their ids are stable, so they come back after a Tabby restart like spec tabs.
+ */
+export const PRESET_TABS: ProjectTabSpec[] = [
+    { id: 'preset:claude', title: 'Claude', kind: 'shell', command: CLAUDE_COMMAND, recoverCommand: CLAUDE_RESUME, icon: builtinIcon('robot') },
+    { id: 'preset:agents', title: 'Claude agents', kind: 'shell', command: AGENTS_COMMAND, icon: builtinIcon('users') },
+]
+
+export function presetTab (id: string | null | undefined): ProjectTabSpec | null {
+    return PRESET_TABS.find(t => t.id === id) ?? null
+}
+
+/** Which Claude program a tab runs, if any — `claude agents` and plain `claude` are told apart. */
+export function claudeProgram (command: string | null | undefined): 'agents' | 'claude' | null {
+    if (!command || !/\bclaude\b/.test(command)) return null
+    return /\bclaude\s+agents\b/.test(command) ? 'agents' : 'claude'
+}
 
 export interface LaunchContext {
     /** Per-tab-instance UUID substituted for `{{session}}`. */

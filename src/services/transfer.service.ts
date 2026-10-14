@@ -185,6 +185,61 @@ export class TransferService {
         }
     }
 
+    // ---- upload box ------------------------------------------------------------
+
+    /**
+     * The upload box's folder: `{{cwd}}` → the project's working directory; `~` and relative
+     * paths are home-relative (as SFTP resolves them). Stays `~/…` if the home can't be found.
+     */
+    async uploadDirFor (session: SSHSession, sftp: SFTPSession, template: string, cwd: string | null): Promise<string> {
+        let dir = (template.trim() || '~/uploads').replace(/\{\{\s*cwd\s*\}\}/g, cwd || '~')
+        if (!dir.startsWith('/')) {
+            const rel = dir.replace(/^~\/?/, '')
+            const home = await this.homeOf(session, sftp)
+            dir = home ? path.posix.join(home, rel) : `~/${rel}`
+        }
+        return dir.length > 1 ? dir.replace(/\/+$/, '') : dir
+    }
+
+    /**
+     * Upload dropped or picked items into `dir` (created if missing). Never overwrites: a taken
+     * name gets a number (`shot.png` → `shot-1.png`). Returns the remote path of each item.
+     */
+    async uploadInto (sftp: SFTPSession, items: (FileUpload | DirectoryUpload)[], dir: string): Promise<string[]> {
+        // `~/x` (home not found) is just `x` to SFTP, which resolves relative paths against the home.
+        const remote = (p: string): string => p === '~' ? '.' : p.startsWith('~/') ? p.slice(2) || '.' : p
+        await mkdirp(sftp, remote(dir))
+        const done: string[] = []
+        for (const item of items) {
+            const dest = await freeName(sftp, dir, item.getName(), remote)
+            if (isDirectoryUpload(item)) {
+                await sftp.mkdir(remote(dest))
+                await uploadTree(sftp, item, remote(dest))
+            } else {
+                await sftp.upload(remote(dest), item)
+            }
+            done.push(dest)
+        }
+        return done
+    }
+
+    private homes = new WeakMap<SSHSession, string | null>()
+
+    /** SFTP here has no realpath, so find the login user's home by trying the usual places. */
+    private async homeOf (session: SSHSession, sftp: SFTPSession): Promise<string | null> {
+        if (this.homes.has(session)) return this.homes.get(session)!
+        const user: string = (session as any).authUsername || session.profile?.options?.user || ''
+        const candidates = !user ? [] : user === 'root' ? ['/root'] : [`/home/${user}`, `/Users/${user}`, `/var/home/${user}`]
+        let home: string | null = null
+        for (const c of candidates) {
+            try {
+                if ((await sftp.stat(c)).isDirectory) { home = c; break }
+            } catch { /* try the next one */ }
+        }
+        this.homes.set(session, home)
+        return home
+    }
+
     private async confirmOverwrite (session: SSHSession, dest: string): Promise<boolean> {
         const r = await this.platform.showMessageBox({
             type: 'warning',
@@ -200,6 +255,33 @@ export class TransferService {
 
 function hostOf (session: SSHSession): string {
     return session.profile?.name || session.profile?.options?.host || 'remote'
+}
+
+/** The terminal tab's SSH session, if it is an SSH tab that has connected. */
+export function sshSessionOf (tab: any): SSHSession | null {
+    const s = tab?.sshSession
+    return s && typeof s.openSFTP === 'function' ? s : null
+}
+
+/** Every file in a set of picked/dropped items, folders included. */
+export function fileUploadsIn (items: (FileUpload | DirectoryUpload)[]): FileUpload[] {
+    return items.flatMap(i => isDirectoryUpload(i) ? fileUploadsIn(i.getChildrens()) : [i])
+}
+
+function isDirectoryUpload (item: FileUpload | DirectoryUpload): item is DirectoryUpload {
+    return typeof (item as any).getChildrens === 'function'
+}
+
+/** `dir/name`, or `dir/stem-1.ext`, `-2`… when that's taken (`.tar.gz` stays together). */
+async function freeName (sftp: SFTPSession, dir: string, name: string, remote: (p: string) => string): Promise<string> {
+    let ext = path.posix.extname(name)
+    if (ext && name.slice(0, -ext.length).endsWith('.tar')) ext = '.tar' + ext
+    const stem = name.slice(0, name.length - ext.length)
+    for (let i = 0; i < 1000; i++) {
+        const p = path.posix.join(dir, i ? `${stem}-${i}${ext}` : name)
+        if (!await exists(sftp, remote(p))) return p
+    }
+    throw new Error(`Too many files called ${name} in ${dir}`)
 }
 
 function isRisky (name: string): boolean {

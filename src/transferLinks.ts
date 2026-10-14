@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { ConfigService } from 'tabby-core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
-import { TransferService, TransferVerb } from './services/transfer.service'
+import { TransferService, TransferVerb, sshSessionOf } from './services/transfer.service'
 
 /**
  * Makes `[[download:/path]]` and `[[upload:/dir/]]` in terminal output clickable.
@@ -127,9 +127,4 @@ function spellings (raw: string, breaks: number[]): string[] {
         out.push((spaced + raw.slice(prev)).trim())
     }
     return [...new Set(out.map(p => p.replace(/^~(?=\/|$)/, '.')))]
-}
-
-function sshSessionOf (tab: BaseTerminalTabComponent<any>): any | null {
-    const s = (tab as any).sshSession
-    return s && typeof s.openSFTP === 'function' ? s : null
 }

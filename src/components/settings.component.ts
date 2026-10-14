@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core'
-import { AppService, PartialProfile, Profile } from 'tabby-core'
+import { AppService, PartialProfile, PlatformService, Profile } from 'tabby-core'
 import { Project, ProjectGroup, ProjectTabSpec, ProjectsConfig, uid } from '../api'
 import { UI, builtinIcon } from '../icons'
 import { ProjectOpenerService } from '../services/opener.service'
-import { ProjectsService } from '../services/projects.service'
+import { PRESET_TABS, ProjectsService } from '../services/projects.service'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { NewProjectDialogComponent } from './newProjectDialog.component'
 
@@ -38,6 +38,14 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                     <div class="form-line"><label>Hide Tabby's own tab bar while the rail is shown</label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.hideTabBar" (ngModelChange)="save()"></div>
                     <div class="form-line"><label>Desktop notification when a tab rings the bell while you're elsewhere <small>(Claude Code: set <code>preferredNotifChannel</code> to <code>terminal_bell</code> in ~/.claude/settings.json)</small></label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.notifyOnBell" (ngModelChange)="save()"></div>
                     <div class="form-line"><label>Clickable transfer links <small>(<code>[[download:/path]]</code> and <code>[[upload:/dir/]]</code> in terminal output)</small></label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.transferLinks" (ngModelChange)="save()"></div>
+                    <div class="form-line"><label>Upload box on SSH terminals <small>(top-right; drop files on it, or click to choose them)</small></label><input type="checkbox" class="form-check-input" [(ngModel)]="cfg.uploadBox" (ngModelChange)="save()"></div>
+                    <div class="row">
+                        <div class="col-6 form-line">
+                            <label>Upload folder <small>(<code>~</code> = home, <code>{{ '{{' }}cwd{{ '}}' }}</code> = project directory; a project can override)</small></label>
+                            <input class="form-control form-control-sm mono" placeholder="~/uploads" [disabled]="!cfg.uploadBox" [(ngModel)]="cfg.uploadDir" (ngModelChange)="save()">
+                        </div>
+                        <div class="col-6 form-line"><label>Type the uploaded path at the prompt <small>(Claude Code picks it up)</small></label><input type="checkbox" class="form-check-input" [disabled]="!cfg.uploadBox" [(ngModel)]="cfg.uploadInsertPath" (ngModelChange)="save()"></div>
+                    </div>
                     <div class="form-line"><label>Rail width</label><input type="number" class="form-control form-control-sm w-100px" min="160" max="480" [(ngModel)]="cfg.railWidth" (ngModelChange)="save()"></div>
                     <div class="form-line">
                         <label>Prompt pattern <small>(regex; a shell is "ready" when its output matches this — commands are typed after it)</small></label>
@@ -110,6 +118,9 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                         <div class="col-8 form-line"><label>Prompt pattern override <small>(blank = global)</small></label><input class="form-control form-control-sm mono" [(ngModel)]="sel.project.promptExpect" (ngModelChange)="save()"></div>
                         <div class="col-4 form-line"><label>Pinned <small>(unpinned fold into "More")</small></label><input type="checkbox" class="form-check-input" [ngModel]="projects.isPinned(sel.project)" (ngModelChange)="sel.project.pinned = $event; save()"></div>
                     </div>
+                    <div class="row">
+                        <div class="col-8 form-line"><label>Upload folder override <small>(upload box; blank = global)</small></label><input class="form-control form-control-sm mono" [placeholder]="cfg.uploadDir || '~/uploads'" [(ngModel)]="sel.project.uploadDir" (ngModelChange)="save()"></div>
+                    </div>
 
                     <h4>Tabs</h4>
                     <table class="table table-sm ps-tabs">
@@ -126,8 +137,8 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
                         </tr>
                         <tr *ngIf="iconRow"><td colspan="8"><icon-picker [value]="iconRow.icon" (valueChange)="iconRow.icon = $event; save()"></icon-picker></td></tr>
                     </table>
-                    <button class="btn btn-sm btn-secondary" (click)="addTab(sel.project)">Add tab</button>
-                    <p class="text-muted small mt-2"><code>{{ '{{' }}session{{ '}}' }}</code> expands to a UUID unique to each opened tab. Claude Code: launch with <code>claude --session-id {{ '{{' }}session{{ '}}' }}</code> and set <em>After restart</em> to <code>claude --resume {{ '{{' }}session{{ '}}' }}</code> — the conversation comes back in the same tab after Tabby restarts.</p>
+                    <button class="btn btn-sm btn-secondary" (click)="addTabMenu($event, sel.project)">Add tab ▾</button>
+                    <p class="text-muted small mt-2"><code>{{ '{{' }}session{{ '}}' }}</code> expands to a UUID unique to each opened tab. Claude Code: launch with <code>claude --session-id {{ '{{' }}session{{ '}}' }}</code> and set <em>After restart</em> to <code>claude --resume {{ '{{' }}session{{ '}}' }}</code> — the conversation comes back in the same tab after Tabby restarts. A <code>claude agents</code> tab opens Claude Code's agent view instead: background sessions you start there keep running when the tab or Tabby closes.</p>
 
                     <div class="mt-4"><button class="btn btn-sm btn-danger" (click)="removeProject(sel.project)">Remove project</button></div>
                 </ng-container>
@@ -149,9 +160,11 @@ type Selection = { kind: 'general' } | { kind: 'group', group: ProjectGroup } | 
         .ps-project-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
         .ps-project-head h3 { margin: 0; }
         .ps-big-icon { width: 36px; height: 36px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; color: #000; }
-        .form-line { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        /* Tabby's global .form-line centres its children (and sizes .form-control to 33%), which squashed every input here. */
+        .form-line { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 12px; }
+        .form-line > .form-control { width: auto; }
         .form-line > label { font-size: 12px; color: var(--theme-fg-more-2); }
-        .form-line > input[type=checkbox] { margin: 0; }
+        .form-line > input[type=checkbox] { margin: 0; align-self: flex-start; }
         .ps-colors { display: flex; align-items: center; gap: 8px; }
         .ps-color { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
         .ps-color.active { border-color: var(--theme-fg); }
@@ -174,6 +187,7 @@ export class ProjectsSettingsComponent implements OnInit {
         public opener: ProjectOpenerService,
         private app: AppService,
         private ngbModal: NgbModal,
+        private platform: PlatformService,
     ) { }
 
     get cfg (): ProjectsConfig { return this.projects.cfg }
@@ -240,8 +254,16 @@ export class ProjectsSettingsComponent implements OnInit {
         this.sel = { kind: 'general' }
     }
 
-    addTab (p: Project): void {
-        p.tabs.push({ id: uid(), title: 'Shell', kind: 'shell', command: null, autoOpen: false })
+    addTabMenu (event: MouseEvent, p: Project): void {
+        this.platform.popupContextMenu([
+            { label: 'Shell', click: () => this.addTab(p, { title: 'Shell', kind: 'shell', command: null, icon: builtinIcon('terminal') }) },
+            ...PRESET_TABS.map(t => ({ label: t.title, click: () => this.addTab(p, { ...t }) })),
+            { label: 'Files', click: () => this.addTab(p, { title: 'Files', kind: 'files', icon: builtinIcon('folder') }) },
+        ], event)
+    }
+
+    addTab (p: Project, spec: Partial<ProjectTabSpec>): void {
+        p.tabs.push({ title: 'Shell', kind: 'shell', ...spec, id: uid(), autoOpen: false })
         this.save()
     }
 

@@ -14,6 +14,10 @@ export class ProjectsConfigProvider extends ConfigProvider {
             notifyOnBell: true,
             // [[download:/path]] / [[upload:/dir/]] in terminal output become clickable.
             transferLinks: true,
+            // Drop box on SSH terminals: files land in uploadDir and their paths are typed at the prompt.
+            uploadBox: true,
+            uploadDir: '~/uploads',
+            uploadInsertPath: true,
             groups: [],
             items: [],
         },
