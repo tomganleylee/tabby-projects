@@ -66,6 +66,7 @@ export const UI = {
     robot: wrap(PATHS.robot),
     dots: wrap('<circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/>'),
     upload: wrap('<path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/>'),
+    ok: wrap('<path d="M20 6 9 17l-5-5"/>'),
     trash: wrap('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
     edit: wrap('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { ConfigProvider, HotkeyProvider, HotkeysService, TabContextMenuItemProvider, TabRecoveryProvider, ToolbarButtonProvider } from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
 import { SFTPContextMenuItemProvider } from 'tabby-ssh'
+import { TerminalDecorator } from 'tabby-terminal'
 
 import { ProjectsConfigProvider } from './config'
 import { FilesTabComponent } from './components/filesTab.component'
@@ -20,6 +21,8 @@ import {
 } from './providers'
 import { ProjectOpenerService } from './services/opener.service'
 import { RailService } from './services/rail.service'
+import { TransferLinksDecorator } from './transferLinks'
+import { UploadBoxDecorator } from './uploadBox'
 
 @NgModule({
     imports: [CommonModule, FormsModule],
@@ -33,6 +36,8 @@ import { RailService } from './services/rail.service'
         { provide: SFTPContextMenuItemProvider, useClass: ProjectsSFTPContextMenu, multi: true },
         { provide: ProjectsSettingsOpener, useClass: ProjectsSettingsOpenerImpl },
         { provide: TabContextMenuItemProvider, useClass: AddToProjectsContextMenu, multi: true },
+        { provide: TerminalDecorator, useClass: TransferLinksDecorator, multi: true },
+        { provide: TerminalDecorator, useClass: UploadBoxDecorator, multi: true },
     ],
     declarations: [
         SafeHtmlPipe,

@@ -3,7 +3,7 @@ import { Subject } from 'rxjs'
 import { AppService, BaseTabComponent, BaseTabProcess, GetRecoveryTokenOptions, HostWindowService, MenuItemOptions, PlatformService, RecoveryToken, TabRecoveryService, TabsService } from 'tabby-core'
 import { Project, ProjectTabSpec, PROJECT_TAB_TOKEN_TYPE } from '../api'
 import { UI } from '../icons'
-import { LaunchContext, ProjectsService, newSessionId } from '../services/projects.service'
+import { LaunchContext, PRESET_TABS, ProjectsService, claudeProgram, newSessionId, presetTab } from '../services/projects.service'
 import { FilesTabComponent } from './filesTab.component'
 
 /** Recovery token for a child opened from a project tab spec — recovered by re-deriving, not replaying. */
@@ -145,7 +145,7 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
                     if (token.type === SPEC_TOKEN_TYPE) {
                         // Re-derive from the *current* project config rather than replaying the
                         // profile snapshot Tabby stored — so config edits and fixes apply on restart.
-                        const spec = this.project.tabs.find(t => t.id === token.specId)
+                        const spec = this.project.tabs.find(t => t.id === token.specId) ?? presetTab(token.specId)
                         if (spec) await this.openSpec(spec, false, { sessionId: token.sessionId ?? newSessionId(), recovering: !!token.sessionId })
                         continue
                     }
@@ -364,6 +364,12 @@ export class ProjectTabComponent extends BaseTabComponent implements AfterViewIn
             click: () => this.openSpec(spec),
         }))
         items.push({ type: 'separator' })
+        // Built-in Claude / Claude agents tabs, unless the project already has a tab running that program.
+        for (const preset of PRESET_TABS) {
+            const program = claudeProgram(preset.command)
+            if (this.project.tabs.some(t => t.kind === 'shell' && claudeProgram(t.command) === program)) continue
+            items.push({ label: preset.title, click: () => this.openSpec(preset) })
+        }
         items.push({ label: 'Plain shell', click: () => this.openSpec({ id: 'adhoc', title: 'Shell', kind: 'shell' }) })
         items.push({ label: 'Files', click: () => this.openFiles() })
         this.platform.popupContextMenu(items, event)

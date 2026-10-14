@@ -49,6 +49,8 @@ export interface Project {
     promptExpect?: string | null
     /** Pinned projects are always listed; unpinned ones fold into a "More" row in their group. Default true. */
     pinned?: boolean
+    /** Where the upload box puts files for this project (blank = the global `uploadDir`). */
+    uploadDir?: string | null
     tabs: ProjectTabSpec[]
 }
 
@@ -63,6 +65,14 @@ export interface ProjectsConfig {
     openWith: Record<string, string>
     /** Show an OS notification when a tab you're not looking at rings the terminal bell. */
     notifyOnBell: boolean
+    /** `[[download:/path]]` / `[[upload:/dir/]]` in terminal output become clickable. */
+    transferLinks: boolean
+    /** Show the drag-and-drop upload box in the top-right corner of SSH terminals. */
+    uploadBox: boolean
+    /** Remote folder the upload box uploads into. `~` = home, `{{cwd}}` = the project's working directory. */
+    uploadDir: string
+    /** After an upload-box upload, type the remote path(s) at the prompt (so Claude Code sees them). */
+    uploadInsertPath: boolean
     groups: ProjectGroup[]
     items: Project[]
 }
